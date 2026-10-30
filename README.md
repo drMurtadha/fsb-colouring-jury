@@ -14,6 +14,24 @@ Spec: [JURY_APP_SPEC.md](JURY_APP_SPEC.md). Build progress: M1 (backend) done; s
 
 Static files, no build step. Put the repo root on GitHub Pages (Settings > Pages > main / root). Paste the Apps Script `/exec` URL into `assets/config.js` (`API_URL`). Set `Config.baseUrl` in the sheet to `https://<user>.github.io/<repo>` so jury links point at the site.
 
+## Test M7 (hardening)
+
+```bash
+node tools/test-m7.js     # 3 juries x 120 saves, shuffled, with retries and edits; formula-injection; call cost
+node tools/dev-server.js  # then /__flaky?drop=0.35&lost=0.25 simulates a bad network (35% requests dropped, 25% replies lost)
+```
+
+All offline tests together: `for t in 1 2 6 7; do node tools/test-m$t.js | tail -1; done`.
+
+**Phone checklist (needs real devices; not done by the build).** Use two phones, one iPhone (Safari) and one Android (Chrome), on the real site over HTTPS:
+1. Open a jury link from WhatsApp (in-app browser), then tap Scan: the camera prompt appears and a printed label scans in under 3 s at about 40 cm.
+2. Open the same label with the phone camera app: it lands on the scoring screen, or on the "open your WhatsApp link first" page if that browser has no token (expected for the in-app/default browser mismatch; use the Scan button).
+3. Score 5 artworks in a row: each Save and Scan Next in under 30 s; the total and Save button stay on screen with no scrolling.
+4. Airplane mode, score 3 artworks (badge `3 menunggu`), airplane off: the badge clears within 10 s and the admin Scores tab shows the rows.
+5. Two phones, same artwork, same moment: two rows in the Scores tab.
+6. Dark mode on the phone, and the Settings theme and slider options.
+7. Admin on a laptop: lock scoring, then try to save on a phone (closed message), unlock.
+
 ## Test M6 (results, stage, public page)
 
 Ranking check against an independent calculation (120 seeded artworks, engineered ties, override, unranked, publish):
@@ -81,7 +99,7 @@ node tools/test-m2.js
 Live: in the Apps Script editor temporarily clear `Participants` rows 2 onward, then run:
 
 ```bash
-curl -sSL -X POST "EXEC" -H 'Content-Type: text/plain;charset=utf-8' -d '{"action":"syncRegistrations","k":"ADMIN_KEY"}'
+curl -sSL "EXEC" -H 'Content-Type: text/plain;charset=utf-8' -d '{"action":"syncRegistrations","k":"ADMIN_KEY"}'
 ```
 
 Expect `added: 25, skipped: 1` and a warning that row 27 duplicates A-002. Run it again: `added: 0, skipped: 26`. The new Participants rows should equal the old ones (same IDs and `formRowKey`).
@@ -99,7 +117,7 @@ Live smoke test against the deployed web app (replace `EXEC` and the key/token):
 ```bash
 curl -sSL "EXEC?action=adminOverview&k=ADMIN_KEY" | head -c 600
 curl -sSL "EXEC?action=juryMe&t=39VB-K3A5-6JSW"
-curl -sSL -X POST "EXEC" -H 'Content-Type: text/plain;charset=utf-8' \
+curl -sSL "EXEC" -H 'Content-Type: text/plain;charset=utf-8' \
   -d '{"action":"saveScore","t":"39VB-K3A5-6JSW","pid":"A-006","c":[7,6,8,10,5],"updatedAtClient":"2026-11-15T12:20:00Z"}'
 ```
 
