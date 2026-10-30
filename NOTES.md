@@ -42,7 +42,7 @@ Heavy rounded sans lettering with a pale light-blue outline on the title; Catego
 14. The test harness emulates Sheets in memory. Google-specific behaviour (number formats keeping phones as text, lock timing, web app deployment) still needs the live smoke test in the README.
 15. **Page cannot reload offline.** Scores and lists are cached in `localStorage` and saves queue offline, but opening or reloading the page with no signal needs a service worker, which the spec does not list. Say if you want one (small).
 16. **Selected chip colours:** the yellow criterion (c3) uses dark text on yellow instead of white, because white on `#F9E40D` fails contrast (spec 15.5). Palette is sampled from poster.jpg: yellow `#F9E40D`, magenta `#BF1F65`, A tile maroon `#7A1E3A`, B blue `#2F6DB5`, purple lightened toward the poster's `#49257F`.
-17. **Fonts** (Baloo 2, Poppins) load from Google Fonts with a system fallback; they are not vendored, so offline reloads use the fallback.
+17. **Fonts**: no web fonts anywhere (Google Fonts links removed from every page). Body `"Avenir Next", ui-sans-serif, system-ui, sans-serif`; headings and IDs `ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, sans-serif` (spec 15.2). On Android Chrome the rounded stack falls back to `system-ui` (Roboto), so headings look less round than the poster there.
 18. **`html5-qrcode` 2.3.8** is the latest release but dates from April 2023 (Apache-2.0). Vendored in `assets/vendor/`.
 19. **Jury token is removed from the address bar** after first open (kept in `localStorage`), so screenshots do not leak it. Opening the WhatsApp link again still works.
 20. **Public landing page** links to `/results/`, which does not exist until M6.

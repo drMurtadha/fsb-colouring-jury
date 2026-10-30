@@ -6,20 +6,62 @@
 <meta name="robots" content="noindex">
 <title>FSB Johor 2026 Colouring Contest</title>
 <link rel="stylesheet" href="assets/ui.css">
+<style>
+  .land-hero { margin: 0; }
+  .land-hero img { display: block; width: 100%; height: auto; }
+  .land-head { padding: 4px 16px 12px; text-align: center; }
+  .land-head h1 { font-size: 30px; font-weight: 800; color: var(--maroon); }
+  .land-head p { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+  .cats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 16px 12px; }
+  .cat { border-radius: 16px; padding: 12px 10px; text-align: center; color: #fff; font-family: var(--font-display); line-height: 1.15; }
+  .cat b { display: block; font-size: 19px; font-weight: 800; }
+  .cat span { display: block; font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .cat.A { background: var(--maroon); }
+  .cat.B { background: var(--blue); }
+  :root[data-theme="dark"] .cat { color: #15131B; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cat { color: #15131B; } }
+  .open { margin: 0 16px 12px; padding: 10px 14px; border-radius: 12px; background: var(--magenta); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 17px; line-height: 1.2; text-align: center; }
+  .open small { display: block; font-size: 14px; font-weight: 600; opacity: .95; }
+  :root[data-theme="dark"] .open { color: #15131B; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .open { color: #15131B; } }
+  .when { border: 3px solid var(--yellow); background: var(--paper); }
+  .when dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; }
+  .when dt { font-weight: 700; color: var(--muted); font-size: 14px; padding-top: 1px; }
+  .when dd { margin: 0; font-weight: 700; }
+  .when dd small { display: block; font-weight: 500; color: var(--muted); font-size: 13px; }
+  .co { margin: 4px 16px 20px; text-align: center; color: var(--muted); font-size: 13px; }
+</style>
 </head>
 <body>
 <div class="app">
-  <div class="hero">
-    <div class="event">Festival Seni Bina Johor 2026 · Selapis: The Making of Architecture</div>
-    <h1 class="hello">Colouring Contest</h1>
-    <div class="chips"><span class="chip A">Kategori A: 7 - 12 thn</span><span class="chip B">Kategori B: bawah 7 thn</span></div>
+  <figure class="land-hero">
+    <img src="assets/hero.jpg" width="1000" height="462" alt="Poster Pertandingan Mewarna: Colouring Contest, Festival Seni Bina Johor 2026, Selapis: The Making of Architecture. Colourful beams and the words Colouring Contest.">
+  </figure>
+
+  <div class="land-head">
+    <h1>Pertandingan Mewarna</h1>
+    <p>Colouring Contest · Festival Seni Bina Johor 2026</p>
   </div>
-  <div class="card">
-    <p style="margin:0"><b>Ahad, 15 November 2026</b>, 10.00 pagi - 12.00 tengah hari<br>Bengkel Elektrik, Kota Jail Johor<br>
-    Sunday, 15 November 2026, 10:00 AM - 12:00 PM, Workshop (Bengkel Elektrik), Kota Jail Johor</p>
+
+  <div class="cats">
+    <div class="cat A"><b>Kategori A</b><span>7 - 12 tahun<br>7 - 12 years</span></div>
+    <div class="cat B"><b>Kategori B</b><span>bawah 7 tahun<br>below 7 years</span></div>
   </div>
+
+  <div class="open">Terbuka kepada semua kanak-kanak sehingga 12 tahun<small>Open to all kids up to 12</small></div>
+
+  <div class="card when">
+    <dl>
+      <dt>Tarikh<br>Date</dt><dd>Ahad, 15 November 2026<small>Sunday, 15 November 2026</small></dd>
+      <dt>Masa<br>Time</dt><dd>10.00 pagi - 12.00 tengah hari<small>10:00 AM - 12:00 PM</small></dd>
+      <dt>Tempat<br>Venue</dt><dd>Bengkel Elektrik, Kota Jail Johor<small>Workshop (Bengkel Elektrik), Kota Jail Johor</small></dd>
+    </dl>
+  </div>
+
   <div class="card"><p style="margin:0">Juri: gunakan pautan peribadi yang dihantar melalui WhatsApp.<br>Juries: use the personal link sent to you on WhatsApp.</p></div>
   <div class="stack"><a class="btn" href="results/">Keputusan / Results</a></div>
+
+  <p class="co">Penganjur bersama / Co-organisers: PAM Southern Chapter · UTM (KALAM)</p>
 </div>
 </body>
 </html>
