@@ -7,7 +7,8 @@
 
 var ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 chars, no 0/O/1/I
 var STATUSES = ['active', 'absent', 'dq'];
-var CONFIG_KEYS = Object.keys(DEFAULT_CONFIG).concat(['dataStatus', 'rankOverrides']);
+// Built on first use: Apps Script may load Code.gs before Sheets.gs, where DEFAULT_CONFIG lives.
+function configKeys_() { return Object.keys(DEFAULT_CONFIG).concat(['dataStatus', 'rankOverrides']); }
 var BOOL_KEYS = ['scoringLocked', 'resultsPublished', 'showNamesOnStage'];
 
 var ACTIONS = {
@@ -549,7 +550,7 @@ function scoreDelete_(ctx, p) {
 
 function setConfig_(ctx, p) {
   var key = String(p.key || '').trim();
-  if (CONFIG_KEYS.indexOf(key) < 0) throw apiErr_('BAD_INPUT', 'Unknown config key');
+  if (configKeys_().indexOf(key) < 0) throw apiErr_('BAD_INPUT', 'Unknown config key');
   var val = p.value === undefined || p.value === null ? '' : p.value;
   if (typeof val !== 'string') val = typeof val === 'object' ? JSON.stringify(val) : String(val);
   if (BOOL_KEYS.indexOf(key) >= 0) {
