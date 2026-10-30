@@ -14,7 +14,7 @@
 
 .pages { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0 48px; background: var(--card); }
 .psheet { position: relative; width: 210mm; height: 297mm; background: #fff; color: #000; box-shadow: 0 0 6px rgba(0,0,0,.3); overflow: hidden; flex: none; }
-.lab { position: absolute; display: flex; align-items: center; gap: 2mm; padding: 0 3mm; overflow: hidden; background: #fff; }
+.lab { position: absolute; display: flex; align-items: center; gap: 3mm; padding: 0 2mm 0 2mm; overflow: hidden; background: #fff; }
 .psheet.guides .lab { outline: 0.2mm dashed #999; outline-offset: -0.1mm; }
 .lab .qr { flex: none; line-height: 0; }
 .lab .qr svg { width: 100%; height: 100%; display: block; }

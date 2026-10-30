@@ -212,10 +212,10 @@ function viewScan(withCamera) {
   if (!withCamera) { $('#num').focus(); return; }
   const mySession = ++scanSession;
   if (!window.Html5Qrcode) { $('#scanHint').textContent = t('camFail'); return; }
-  const sc = new Html5Qrcode('reader', { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE], verbose: false });
+  const sc = new Html5Qrcode('reader', { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE], verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
   scanner = sc;
   let done = false;
-  sc.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 220, height: 220 } }, text => {
+  sc.start({ facingMode: 'environment' }, { fps: 15, qrbox: (w, h) => { const side = Math.floor(Math.min(w, h) * 0.7); return { width: side, height: side }; } }, text => {
     const pid = parsePid(text);
     if (!pid || done || mySession !== scanSession) return;
     done = true;

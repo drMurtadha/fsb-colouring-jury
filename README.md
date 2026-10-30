@@ -18,6 +18,7 @@ Static files, no build step. Put the repo root on GitHub Pages (Settings > Pages
 
 ```bash
 node tools/test-m7.js     # 3 juries x 120 saves, shuffled, with retries and edits; formula-injection; call cost
+npm install --loglevel=warn && node tools/test-qr.js   # label QR decodes (jsqr, dev-only) and maps back to the right ID
 node tools/dev-server.js  # then /__flaky?drop=0.35&lost=0.25 simulates a bad network (35% requests dropped, 25% replies lost)
 ```
 

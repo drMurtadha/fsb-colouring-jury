@@ -51,22 +51,31 @@ function chosen() {
 
 function qrSvg(pid) {
   const base = String(data.config.baseUrl || '').replace(/\/+$/, '');
-  const q = qrcode(0, 'Q');                      // error correction Q, version picked automatically
+  const q = qrcode(0, 'M');                      // error correction M keeps the code small (33 x 33 for our URL); version picked automatically
   q.addData(base + '/a/?p=' + pid);
   q.make();
-  return q.createSvgTag({ cellSize: 1, margin: 0, scalable: true });
+  return q.createSvgTag({ cellSize: 1, margin: 4, scalable: true });     // 4-module quiet zone is part of the SVG
+}
+
+/** Modules per side without the quiet zone, for the longest ID (all IDs are the same length). */
+function qrModules() {
+  const q = qrcode(0, 'M');
+  q.addData(String(data.config.baseUrl || '').replace(/\/+$/, '') + '/a/?p=A-0000');
+  q.make();
+  return q.getModuleCount();
 }
 
 function sheetsHtml(list) {
   const L = st.layout, per = Math.max(1, L.cols * L.rows);
-  const qr = Math.max(0, Math.min(26, L.h - 6, L.w * 0.45));
+  // qr = the SVG box including its 4-module quiet zone; sym = the dark pattern alone (default label: 29.9 mm box, 24.1 mm code)
+  const qr = Math.max(0, Math.min(30, L.h - 4, L.w * 0.5)), mod = qrModules(), sym = qr * mod / (mod + 8);
   const items = [];
   list.forEach(p => { items.push({ p, stub: false }); if (st.two) items.push({ p, stub: true }); });
   const pages = [];
   for (let i = 0; i < items.length; i += per) pages.push(items.slice(i, i + per));
   const ev = data.config.eventName || '';
   return {
-    count: items.length, pages: pages.length, qr,
+    count: items.length, pages: pages.length, qr, sym,
     html: pages.map(pg => `<div class="psheet ${st.guides ? 'guides' : ''}">${pg.map((it, k) => {
       const c = k % L.cols, r = Math.floor(k / L.cols);
       const left = L.ml + c * (L.w + L.gx), top = L.mt + r * (L.h + L.gy);
@@ -94,9 +103,9 @@ function view() {
       <label class="in"><input type="checkbox" id="guides" ${st.guides ? 'checked' : ''}> ${esc(t('prGuides'))}</label></fieldset>
     <fieldset><legend>${esc(t('prLayout'))}</legend><div class="f">${nf('cols', t('prCols'))}${nf('rows', t('prRows'))}${nf('w', t('prW'))}${nf('h', t('prH'))}${nf('mt', t('prMT'))}${nf('ml', t('prML'))}${nf('gx', t('prGX'))}${nf('gy', t('prGY'))}
       <button class="btn sm" id="reset" style="min-height:36px">${esc(t('prReset'))}</button></div></fieldset>
-    ${sh.qr < 22 ? `<div class="warn">${esc(t('prSmall'))}</div>` : ''}
+    ${sh.sym < 22 ? `<div class="warn">${esc(t('prSmall'))}</div>` : ''}
     <div class="f"><button class="btn primary" id="go" style="width:auto;padding:0 28px;min-height:48px" ${sh.count ? '' : 'disabled'}>${esc(t('prPrint'))}</button>
-      <span class="info">${esc(sh.count ? t('prCount', { n: sh.count, p: sh.pages }) : t('prNone'))} · QR ${sh.qr.toFixed(1)} mm</span></div></div>
+      <span class="info">${esc(sh.count ? t('prCount', { n: sh.count, p: sh.pages }) : t('prNone'))} · QR ${sh.sym.toFixed(1)} mm</span></div></div>
     <div class="pages">${sh.html}</div>`;
   $('#langBtn').onclick = () => setLang(getLang() === 'bm' ? 'en' : 'bm');
   $('#go').onclick = () => window.print();
