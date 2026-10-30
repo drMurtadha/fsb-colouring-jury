@@ -26,7 +26,8 @@ var ACTIONS = {
   scoreDelete: { method: 'POST', auth: 'admin', fn: scoreDelete_ },
   computeResults: { method: 'POST', auth: 'admin', fn: computeResults_ },
   setConfig: { method: 'POST', auth: 'admin', fn: setConfig_ },
-  publicResults: { method: 'GET', auth: 'none', fn: publicResults_ }
+  publicResults: { method: 'GET', auth: 'none', fn: publicResults_ },
+  publicSchedule: { method: 'GET', auth: 'none', fn: publicSchedule_ }
 };
 
 // ---- Entry points and plumbing --------------------------------------------
@@ -294,8 +295,41 @@ function juryMe_(ctx) {
     jid: j.jid, name: j.name, categories: ctx.cats, isHead: isTrue_(j.isHead),
     eventName: cfgStr_('eventName'), eventDate: cfgStr_('eventDate'),
     criteria: cfgJson_('criteria'), weights: w,
-    minJuryPerArtwork: cfgInt_('minJuryPerArtwork'), locked: cfgBool_('scoringLocked')
+    minJuryPerArtwork: cfgInt_('minJuryPerArtwork'), locked: cfgBool_('scoringLocked'),
+    schedule: { status: scheduleStatus_(), items: scheduleItems_(['umum', 'juri'], true) }
   };
+}
+
+// ---- Programme (tab Aturcara) -------------------------------------------------------
+
+function scheduleStatus_() { return cfgStr_('scheduleStatus').trim().toLowerCase() === 'muktamad' ? 'muktamad' : 'tentatif'; }
+
+/** "9:30", "09:30" or a sheet time such as "1899-12-30 09:30:00" to "HH:MM"; '' if there is no time in it. */
+function hm_(v) {
+  var m = /(\d{1,2}):(\d{2})/.exec(String(v === undefined || v === null ? '' : v));
+  return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : '';
+}
+
+/**
+ * Rows with an activityBm and visible = TRUE, whose audience is one of `audiences`, sorted by order
+ * (rows without a number go last, in sheet order). withAudience adds the audience to each item.
+ */
+function scheduleItems_(audiences, withAudience) {
+  return readTab_('Aturcara').rows
+    .filter(function (r) {
+      return String(r.activityBm || '').trim() !== '' && isTrue_(r.visible) && audiences.indexOf(String(r.audience || '').trim().toLowerCase()) >= 0;
+    })
+    .map(function (r) { var n = parseFloat(r.order); return { r: r, n: isNaN(n) ? Infinity : n }; })
+    .sort(function (a, b) { return a.n === b.n ? a.r._row - b.r._row : (a.n < b.n ? -1 : 1); })
+    .map(function (x) {
+      var it = { start: hm_(x.r.start), end: hm_(x.r.end), bm: String(x.r.activityBm).trim(), en: String(x.r.activityEn || '').trim() };
+      if (withAudience) it.audience = String(x.r.audience).trim().toLowerCase();
+      return it;
+    });
+}
+
+function publicSchedule_() {
+  return { status: scheduleStatus_(), items: scheduleItems_(['umum'], false) };
 }
 
 function juryArtworks_(ctx) {
@@ -576,6 +610,10 @@ function setConfig_(ctx, p) {
   if (configKeys_().indexOf(key) < 0) throw apiErr_('BAD_INPUT', 'Unknown config key');
   var val = p.value === undefined || p.value === null ? '' : p.value;
   if (typeof val !== 'string') val = typeof val === 'object' ? JSON.stringify(val) : String(val);
+  if (key === 'scheduleStatus') {
+    val = val.trim().toLowerCase();
+    if (val !== 'tentatif' && val !== 'muktamad') throw apiErr_('BAD_INPUT', 'scheduleStatus must be tentatif or muktamad');
+  }
   if (BOOL_KEYS.indexOf(key) >= 0) {
     if (!/^(true|false)$/i.test(val.trim())) throw apiErr_('BAD_INPUT', key + ' must be TRUE or FALSE');
     val = val.trim().toUpperCase();

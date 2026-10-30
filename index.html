@@ -29,11 +29,15 @@
   .when dt { font-weight: 700; color: var(--muted); font-size: 14px; padding-top: 1px; }
   .when dd { margin: 0; font-weight: 700; }
   .when dd small { display: block; font-weight: 500; color: var(--muted); font-size: 13px; }
+  .lang-row { display: flex; justify-content: flex-end; padding: 8px 12px 0; }
+  .progh { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .prog-note { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
   .co { margin: 4px 16px 20px; text-align: center; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
 <div class="app">
+  <div class="lang-row"><button class="lang" id="langBtn" type="button" aria-label="Bahasa / Language"></button></div>
   <figure class="land-hero">
     <img src="assets/hero.jpg" width="1000" height="462" alt="Poster Pertandingan Mewarna: Colouring Contest, Festival Seni Bina Johor 2026, Selapis: The Making of Architecture. Colourful beams and the words Colouring Contest.">
   </figure>
@@ -58,10 +62,53 @@
     </dl>
   </div>
 
+  <div class="card" id="progCard">
+    <h3 class="progh"><span>Aturcara / Programme</span><span id="progBadge"></span></h3>
+    <div id="progBody"><p class="prog-note">…</p></div>
+  </div>
+
   <div class="card"><p style="margin:0">Juri: gunakan pautan peribadi yang dihantar melalui WhatsApp.<br>Juries: use the personal link sent to you on WhatsApp.</p></div>
   <div class="stack"><a class="btn" href="results/">Keputusan / Results</a></div>
 
   <p class="co">Penganjur bersama / Co-organisers: PAM Southern Chapter · UTM (KALAM)</p>
 </div>
+<script type="module">
+import { t, getLang, setLang, addStrings } from './assets/i18n.js';
+import { apiGet, store } from './assets/api.js';
+import { mountSchedule } from './assets/schedule.js';
+
+addStrings({
+  progNow: ['Sekarang', 'Now'],
+  progTentative: ['Tentatif', 'Tentative'],
+  progLater: ['Aturcara akan dikemas kini', 'The programme will be updated'],
+  progLoading: ['Memuatkan aturcara…', 'Loading programme…']
+});
+const $ = id => document.getElementById(id);
+const KEY = 'fsb.schedule';
+let data = store.get(KEY, null);           // last good response; shown at once, replaced when the call succeeds
+let failed = false, paint = null;
+
+function show() {
+  const items = data && Array.isArray(data.items) ? data.items : [];
+  $('progBadge').innerHTML = data && data.status === 'tentatif' ? `<span class="badge pending">${t('progTentative')}</span>` : '';
+  if (!items.length) {
+    $('progBody').innerHTML = `<p class="prog-note">${t(failed || data ? 'progLater' : 'progLoading')}</p>`;
+    paint = null;
+    return;
+  }
+  if (!paint || !$('progBody').querySelector('.prog')) paint = mountSchedule($('progBody'), state);
+  else paint();
+}
+const state = () => ({ items: data.items, lang: getLang(), labels: { now: t('progNow') } });
+
+const langBtn = $('langBtn');
+const syncLang = () => { langBtn.textContent = getLang() === 'bm' ? 'EN' : 'BM'; };
+langBtn.onclick = () => { setLang(getLang() === 'bm' ? 'en' : 'bm'); syncLang(); show(); };
+syncLang();
+show();
+
+apiGet('publicSchedule').then(d => { data = d; store.set(KEY, d); failed = false; paint = null; show(); })
+  .catch(() => { failed = true; show(); });
+</script>
 </body>
 </html>

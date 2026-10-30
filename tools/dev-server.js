@@ -19,6 +19,12 @@ post({ action: 'setConfig', ...A, key: 'baseUrl', value: `http://localhost:${por
 const juries = [['Ar. Juri Contoh Satu', '60110000901', 'A,B', true], ['Ar. Juri Contoh Dua', '60110000902', 'A', false]]
   .map(j => post({ action: 'juryUpsert', ...A, name: j[0], whatsapp: j[1], categories: j[2], isHead: j[3] }).data);
 
+// the mock sheet's programme, plus one jury-only row
+sheets.Aturcara.rows.push(
+  [1, '09:30', '10:00', 'Pendaftaran', 'Registration', 'umum', true], [2, '10:00', '10:10', 'Taklimat', 'Briefing', 'umum', true],
+  [2.5, '09:45', '10:00', 'Taklimat juri', 'Jury briefing', 'juri', true], [3, '10:10', '11:20', 'Pertandingan mewarna', 'Colouring contest', 'umum', true],
+  [4, '11:20', '11:45', 'Penilaian juri', 'Judging', 'umum', true], [5, '11:45', '12:00', 'Pengumuman dan penyampaian hadiah', 'Announcement and prize-giving', 'umum', true]);
+
 if (demo) {
   juries.push(post({ action: 'juryUpsert', ...A, name: 'Ar. Juri Contoh Tiga', whatsapp: '60110000903', categories: 'A,B', isHead: false }).data);
   let seed = 7; const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);

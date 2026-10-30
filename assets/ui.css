@@ -134,13 +134,27 @@ button { cursor: pointer; }
 .sheet h3 { font-size: 22px; margin-bottom: 8px; }
 .sheet ul { padding-left: 18px; margin: 8px 0 16px; }
 
-details.settings { margin: 8px 16px 24px; }
-details.settings summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; color: var(--muted); }
+details.settings, details.sched { margin: 8px 16px 24px; }
+details.sched { margin-bottom: 8px; }
+details.settings summary, details.sched summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; color: var(--muted); }
 .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; }
 .seg2 { display: flex; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg2 button { border: 0; background: var(--paper); padding: 8px 12px; min-height: 40px; font-weight: 600; }
 .seg2 button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 
+/* programme (Aturcara) */
+.prog { list-style: none; margin: 8px 0 0; padding: 0; }
+.prog li { display: grid; grid-template-columns: 6.6em 1fr auto; gap: 2px 10px; align-items: baseline; padding: 8px 10px; border-radius: 10px; }
+.prog li + li { margin-top: 2px; }
+.prog time { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.prog .act { font-weight: 600; }
+.prog .tag { font-style: normal; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--purple); color: #fff; }
+:root[data-theme="dark"] .prog .tag { color: #15131B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .prog .tag { color: #15131B; } }
+.prog li.now { background: var(--yellow); color: var(--on-yellow); }
+.prog li.now time { color: var(--on-yellow); }
+.prog .nowtag { grid-column: 2 / 4; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.prog .tag + .nowtag { grid-column: 2 / 4; }
 .lang { border: 2px solid var(--line); background: var(--paper); border-radius: 999px; padding: 4px 12px; font-weight: 700; min-height: 36px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

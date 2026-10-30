@@ -1,7 +1,11 @@
 // Jury app: welcome, home, scanner, scoring. Hash routes: #/ #/welcome #/scan #/id #/list/todo #/list/done #/score/A-014
-import { t, getLang, setLang, onLang } from '../assets/i18n.js';
+import { t, getLang, setLang, onLang, addStrings } from '../assets/i18n.js';
+import { mountSchedule } from '../assets/schedule.js';
 import { store, getToken, setToken, refresh, cached, myScores, saveScore, pendingCount, failedSaves, clearFailed, subscribe } from '../assets/api.js';
 
+addStrings({
+  progTitle: ['Aturcara', 'Programme'], progNow: ['Sekarang', 'Now'], progJury: ['Juri', 'Jury'], progTentative: ['Tentatif', 'Tentative']
+});
 const view = document.getElementById('view');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = (sel, root) => (root || document).querySelector(sel);
@@ -139,6 +143,7 @@ function viewHome(refreshAfter = true) {
       <div class="bar ${cat}"><i style="width:${all.length ? Math.round(100 * n / all.length) : 0}%"></i></div></div>`;
   }).join('');
   const th = store.get('fsb.theme', 'auto'), im = inputMode();
+  const sched = me.schedule && Array.isArray(me.schedule.items) ? me.schedule.items : [];
   const seg = (name, cur, opts) => `<div class="seg2" data-set="${name}">${opts.map(o => `<button data-v="${o[0]}" aria-pressed="${cur === o[0]}">${esc(o[1])}</button>`).join('')}</div>`;
   view.innerHTML = `<div class="app"><div class="hero">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="event">${esc(me.eventName)}</span><span>${syncBadge()} ${langBtn()}</span></div>
@@ -150,11 +155,13 @@ function viewHome(refreshAfter = true) {
     <div class="stack"><a class="btn primary" href="#/scan" id="scanBtn">${esc(t('scan'))}</a></div>
     <div class="row2"><a class="btn" href="#/id">${esc(t('enterId'))}</a><a class="btn" href="#/list/todo">${esc(t('todo'))} (${st.todo.length})</a></div>
     <div class="stack"><a class="btn" href="#/list/done">${esc(t('done'))} (${st.scored.length})</a></div>
+    ${sched.length ? `<details class="sched"><summary>${esc(t('progTitle'))}${me.schedule.status === 'tentatif' ? ` <span class="badge pending" style="margin-left:8px">${esc(t('progTentative'))}</span>` : ''}</summary><div id="progBody"></div></details>` : ''}
     <details class="settings"><summary>${esc(t('settings'))}</summary>
       <div class="setrow"><span>${esc(t('theme'))}</span>${seg('theme', th, [['auto', t('themeAuto')], ['light', t('themeLight')], ['dark', t('themeDark')]])}</div>
       <div class="setrow"><span>${esc(t('inputMode'))}</span>${seg('inputMode', im, [['chips', t('chips')], ['slider', t('slider')]])}</div>
       <p class="hint" style="margin:6px 0 0">${esc(t('holdHint'))}</p></details></div>`;
   bindLang();
+  if (sched.length) mountSchedule($('#progBody'), () => ({ items: sched, lang: getLang(), labels: { now: t('progNow'), jury: t('progJury') } }));
   const clr = $('#clrFail'); if (clr) clr.onclick = () => { clearFailed(); render(); };
   $$('[data-set]').forEach(box => $$('button', box).forEach(b => {
     b.onclick = () => {
@@ -168,7 +175,7 @@ function viewHome(refreshAfter = true) {
   if (refreshAfter) {
     // once per visit: repaint without refreshing again, otherwise the two would call each other forever
     refresh().then(() => {
-      if (!location.hash || location.hash === '#/' || location.hash === '#') { const d = $('details.settings'); if (!d || !d.open) viewHome(false); }
+      if (!location.hash || location.hash === '#/' || location.hash === '#') { const d = $('details.settings'), p = $('details.sched'); if ((!d || !d.open) && (!p || !p.open)) viewHome(false); }
     }).catch(() => {});
   }
 }

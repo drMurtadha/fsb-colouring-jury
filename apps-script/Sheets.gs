@@ -10,7 +10,8 @@ var TABS = {
   Scores: ['key', 'jid', 'pid', 'category', 'c1', 'c2', 'c3', 'c4', 'c5', 'total', 'note', 'updatedAtClient', 'updatedAtServer'],
   Config: ['key', 'value'],
   Audit: ['time', 'actor', 'action', 'target', 'before', 'after'],
-  Results: ['category', 'rank', 'pid', 'nScores', 'mean', 'sd', 'c3Mean', 'c1Mean', 'flag']
+  Results: ['category', 'rank', 'pid', 'nScores', 'mean', 'sd', 'c3Mean', 'c1Mean', 'flag'],
+  Aturcara: ['order', 'start', 'end', 'activityBm', 'activityEn', 'audience', 'visible']
 };
 
 // Every column that holds text is written with the plain-text format, so a name or note that starts with
@@ -21,7 +22,8 @@ var TEXT_COLS = {
   Scores: ['key', 'jid', 'pid', 'category', 'note', 'updatedAtClient', 'updatedAtServer'],
   Config: ['value'],
   Audit: ['time', 'actor', 'action', 'target', 'before', 'after'],
-  Results: ['category', 'pid', 'flag']
+  Results: ['category', 'pid', 'flag'],
+  Aturcara: ['start', 'end', 'activityBm', 'activityEn', 'audience']
 };
 
 var FORM_TAB = 'Form Responses 1';
@@ -45,6 +47,7 @@ var DEFAULT_CONFIG = {
   scoringLocked: 'FALSE',
   resultsPublished: 'FALSE',
   showNamesOnStage: 'TRUE',
+  scheduleStatus: 'tentatif',
   aggregation: 'mean',
   formColumnMap: JSON.stringify({
     timestamp: 'Timestamp',

@@ -6,7 +6,7 @@ setClock('2033-01-01T00:00:00Z');                          // fixed client times
 
 // ---- setup ----
 run('setup()');
-ok(Object.keys(sheets).length === 6, 'setup creates tabs');
+ok(Object.keys(sheets).length === 7, 'setup creates tabs');
 const KEY = props.ADMIN_KEY;
 ok(KEY && KEY.length === 16, 'ADMIN_KEY generated');
 const A = { k: KEY };
