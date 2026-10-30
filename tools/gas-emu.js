@@ -24,14 +24,14 @@ class Sheet {
 }
 const sheets = {}, props = {};
 const pad = n => String(n).padStart(2, '0');
-// Server clock the scripts see; setClock('2033-01-01T00:00:00Z') pins "now" (tests that use fixed client times), setClock() restores it.
-let clockOffset = 0;
+// Server clock the scripts see; setClock('2033-01-01T00:00:00Z') freezes "now" at that instant (tests that use fixed client times), setClock() restores it.
+let frozen = null;                                           // null = real time
 class ServerDate extends Date {
-  constructor(...a) { a.length ? super(...a) : super(Date.now() + clockOffset); }
-  static now() { return Date.now() + clockOffset; }
+  constructor(...a) { a.length ? super(...a) : super(ServerDate.now()); }
+  static now() { return frozen === null ? Date.now() : frozen; }
   static [Symbol.hasInstance](x) { return x instanceof Date; }   // Date objects made outside the script still count
 }
-const setClock = iso => { clockOffset = iso ? Date.parse(iso) - Date.now() : 0; };
+const setClock = iso => { frozen = iso ? Date.parse(iso) : null; };
 const ctx = vm.createContext({
   console, Math, JSON, Date: ServerDate, Object, Array, String, Number, isFinite, isNaN, parseInt, Error, RegExp,
   Logger: { log() {} },

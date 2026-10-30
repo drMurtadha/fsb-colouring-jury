@@ -216,6 +216,11 @@ function isoTs_(v) {
   return t ? new Date(t).toISOString() : '';
 }
 
+/** Order artwork entries by category, then by number (A-001..A-015, then B-001..). */
+function byPid_(x, y) {
+  return x.category === y.category ? parseInt(String(x.pid).slice(2), 10) - parseInt(String(y.pid).slice(2), 10) : (x.category < y.category ? -1 : 1);
+}
+
 function link_(token) { return cfgStr_('baseUrl').replace(/\/+$/, '') + '/j/?t=' + token; }
 
 function juryOut_(j) {
@@ -378,6 +383,8 @@ function adminOverview_() {
     if (a.n < min) belowMin.push({ pid: pid, category: a.p.category, nScores: a.n });
     if (a.disagree) flags.push({ pid: pid, category: a.p.category, nScores: a.n, mean: round_(a.mean, 2), sd: round_(a.sd, 2), maxDev: round_(a.maxDev, 2) });
   });
+  belowMin.sort(byPid_);
+  flags.sort(byPid_);
 
   return {
     counts: counts,

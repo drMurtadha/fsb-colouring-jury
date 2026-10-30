@@ -118,4 +118,11 @@ ok(r.data.stale, 'a save one minute older than the mock row is ignored');
 r = post({ action: 'saveScore', t: two.token, pid: 'A-020', c: [6, 6, 6, 6, 6], updatedAtClient: new Date(+mockLocal + 60000).toISOString() });
 ok(r.data.saved, 'a save one minute newer than the mock row is accepted');
 eq(sc.find(x => x[0] === 'J02|A-020')[11], new Date(+mockLocal + 60000).toISOString(), 'it is stored as ISO UTC');
+// overview lists are ordered by category, then number, however the artworks were scored
+sheets.Scores.rows.splice(1);                                  // no scores: every artwork is below the minimum
+post({ action: 'saveScore', t: one.token, pid: 'B-001', c: [5, 5, 5, 5, 5], updatedAtClient: '2034-02-01T00:00:00Z' });
+post({ action: 'saveScore', t: one.token, pid: 'A-015', c: [5, 5, 5, 5, 5], updatedAtClient: '2034-02-01T00:00:00Z' });
+const bm = get({ action: 'adminOverview', ...A }).data.coverage.belowMin.map(b => b.pid);
+eq(bm, [...bm].sort(), 'belowMin pills are in order: A-001.. then B-001..');
+ok(bm.indexOf('A-015') < bm.indexOf('B-001'), 'A-015 comes before the B artworks');
 summary();
