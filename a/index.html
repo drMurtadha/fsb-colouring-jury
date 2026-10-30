@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Karya FSB Johor 2026</title>
+<link rel="stylesheet" href="../assets/ui.css">
+</head>
+<body>
+<div class="app"><div class="blocked"><h1 id="pid" style="font-size:56px"></h1><p id="msg"></p></div></div>
+<script type="module">
+// QR landing (spec 6.3, 9.3). No data fetch: a browser that already holds a jury token goes straight to scoring.
+import { t } from '../assets/i18n.js';
+let tok = '';
+try { tok = JSON.parse(localStorage.getItem('fsb.token') || '""'); } catch (e) { /* storage blocked */ }
+const m = /^([AB])\s*-?\s*(\d{1,4})$/i.exec((new URLSearchParams(location.search).get('p') || '').trim());
+const pid = m ? m[1].toUpperCase() + '-' + String(parseInt(m[2], 10)).padStart(3, '0') : '';
+if (tok && pid) location.replace('../j/?p=' + encodeURIComponent(pid));
+else {
+  document.getElementById('pid').textContent = pid;
+  document.getElementById('msg').textContent = t('artworkNoToken', { pid: pid || '?' });
+}
+</script>
+</body>
+</html>

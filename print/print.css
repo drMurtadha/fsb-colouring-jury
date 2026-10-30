@@ -1,0 +1,34 @@
+/* True-size label sheets. Everything inside .psheet is in millimetres and always black on white. */
+@page { size: A4; margin: 0; }
+.ctl { max-width: 900px; margin: 0 auto; padding: 12px 16px; }
+.ctl h1 { font-size: 22px; color: var(--maroon); margin-bottom: 8px; }
+.ctl fieldset { border: 2px solid var(--line); border-radius: 12px; margin: 0 0 12px; padding: 8px 12px; }
+.ctl legend { font-weight: 700; padding: 0 6px; }
+.ctl .f { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.ctl label { display: flex; flex-direction: column; font-size: 13px; color: var(--muted); gap: 2px; }
+.ctl label.in { flex-direction: row; align-items: center; gap: 6px; font-size: 15px; color: var(--ink); min-height: 36px; }
+.ctl input[type=number], .ctl input[type=text], .ctl select { border: 2px solid var(--line); border-radius: 8px; padding: 4px 8px; min-height: 36px; background: var(--paper); width: 90px; }
+.ctl input[type=text] { width: 100%; max-width: 420px; }
+.ctl .info { color: var(--muted); font-size: 14px; margin: 4px 0; }
+.ctl .warn { background: var(--yellow); color: var(--on-yellow); border-radius: 10px; padding: 6px 10px; margin: 6px 0; }
+
+.pages { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0 48px; background: var(--card); }
+.psheet { position: relative; width: 210mm; height: 297mm; background: #fff; color: #000; box-shadow: 0 0 6px rgba(0,0,0,.3); overflow: hidden; flex: none; }
+.lab { position: absolute; display: flex; align-items: center; gap: 2mm; padding: 0 3mm; overflow: hidden; background: #fff; }
+.psheet.guides .lab { outline: 0.2mm dashed #999; outline-offset: -0.1mm; }
+.lab .qr { flex: none; line-height: 0; }
+.lab .qr svg { width: 100%; height: 100%; display: block; }
+.lab .txt { min-width: 0; flex: 1; font-family: "Baloo 2", ui-rounded, "Arial Rounded MT Bold", Arial, sans-serif; line-height: 1.05; }
+.lab .id { font-weight: 800; font-size: 7.5mm; letter-spacing: -0.1mm; white-space: nowrap; }
+.lab .cat { font-weight: 700; font-size: 3.4mm; margin-top: 0.6mm; }
+.lab .ev { font-size: 2.1mm; margin-top: 1mm; line-height: 1.15; color: #222; font-family: Arial, sans-serif; }
+.lab.stub { border-left: 0; }
+.lab.stub .cat { font-size: 2.6mm; }
+
+@media print {
+  body { background: #fff; }
+  .ctl { display: none !important; }
+  .pages { display: block; padding: 0; background: #fff; gap: 0; }
+  .psheet { box-shadow: none; break-after: page; page-break-after: always; margin: 0; }
+  .psheet:last-child { break-after: auto; page-break-after: auto; }
+}

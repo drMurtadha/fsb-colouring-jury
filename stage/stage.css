@@ -1,0 +1,33 @@
+/* Projector stage, 16:9. 1u = 1/16 of the frame width; everything is sized in u so it scales to any screen. */
+.st-body { background: #fff; color: #1C1B22; overflow: hidden; height: 100vh; margin: 0; }
+.st-frame { --u: min(6.25vw, 11.111vh); position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 16); height: calc(var(--u) * 9); transform: translate(-50%, -50%); overflow: hidden; background: #fff; font-family: var(--font-ui); }
+.st-beams { position: absolute; inset: -40% -10%; opacity: .22; background: repeating-conic-gradient(from 180deg at 50% 60%, #BF1F65 0 6deg, transparent 6deg 16deg, #2F6DB5 16deg 22deg, transparent 22deg 32deg, #F9E40D 32deg 38deg, transparent 38deg 48deg, #5B3A8C 48deg 53deg, transparent 53deg 64deg); }
+.st-slide { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: calc(var(--u) * .5); animation: st-in .5s ease both; }
+@keyframes st-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.st-kicker { font: 700 calc(var(--u) * .42) var(--font-ui); letter-spacing: .12em; text-transform: uppercase; color: #7A1E3A; }
+.st-title { font: 800 calc(var(--u) * 1.9) / 1 var(--font-display); color: #F9E40D; -webkit-text-stroke: calc(var(--u) * .09) #BDE0F5; paint-order: stroke fill; text-shadow: 0 calc(var(--u) * .06) 0 #2F6DB5; }
+.st-title.sm { font-size: calc(var(--u) * 1.3); }
+.st-sub { font: 600 calc(var(--u) * .55) var(--font-ui); margin-top: calc(var(--u) * .3); color: #5E5B6B; }
+.st-cat { display: inline-block; font: 800 calc(var(--u) * 1.4) var(--font-display); color: #fff; padding: calc(var(--u) * .15) calc(var(--u) * .9); border-radius: calc(var(--u) * .3); }
+.st-cat.A { background: linear-gradient(#9B3145, #7A1E3A); }
+.st-cat.B { background: linear-gradient(#3E75AB, #2F6DB5); }
+.st-place { font: 800 calc(var(--u) * 1.1) var(--font-display); }
+.st-panel { padding: calc(var(--u) * .3) calc(var(--u) * 1.4); border-radius: calc(var(--u) * .45); margin-top: calc(var(--u) * .35); box-shadow: 0 calc(var(--u) * .08) calc(var(--u) * .3) rgba(0,0,0,.25); }
+.st-panel.r1 { background: #F9E40D; color: #1C1B22; }
+.st-panel.r2 { background: #2F6DB5; color: #fff; }
+.st-panel.r3 { background: #BF1F65; color: #fff; }
+.st-id { font: 800 calc(var(--u) * 2.7) / 1 var(--font-display); }
+.st-name { font: 700 calc(var(--u) * .8) / 1.1 var(--font-display); margin-top: calc(var(--u) * .1); }
+.st-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--u) * .3); margin-top: calc(var(--u) * .5); max-width: calc(var(--u) * 14); }
+.st-card { background: #7A1E3A; color: #fff; border-radius: calc(var(--u) * .3); padding: calc(var(--u) * .25) calc(var(--u) * .5); min-width: calc(var(--u) * 2.6); }
+.st-card b { display: block; font: 800 calc(var(--u) * .95) / 1.05 var(--font-display); }
+.st-card span { font: 600 calc(var(--u) * .34) var(--font-ui); display: block; max-width: calc(var(--u) * 4); }
+.st-dots { position: absolute; left: 0; right: 0; bottom: calc(var(--u) * .2); display: flex; justify-content: center; gap: calc(var(--u) * .1); }
+.st-dots i { width: calc(var(--u) * .12); height: calc(var(--u) * .12); border-radius: 50%; background: #D9D5E3; }
+.st-dots i.on { background: #BF1F65; }
+.st-hint { position: absolute; right: calc(var(--u) * .3); bottom: calc(var(--u) * .2); font: 600 calc(var(--u) * .22) var(--font-ui); color: #8b879a; }
+.st-warn { position: absolute; left: calc(var(--u) * .3); top: calc(var(--u) * .3); background: #F9E40D; padding: calc(var(--u) * .1) calc(var(--u) * .3); border-radius: calc(var(--u) * .15); font: 700 calc(var(--u) * .26) var(--font-ui); max-width: calc(var(--u) * 8); }
+.st-tools { position: fixed; right: 8px; top: 8px; display: flex; gap: 6px; opacity: .25; z-index: 5; }
+.st-tools:hover, .st-tools:focus-within { opacity: 1; }
+.st-tools button, .st-tools a { border: 2px solid #D9D5E3; background: #fff; color: #1C1B22; border-radius: 999px; padding: 4px 12px; font-weight: 700; text-decoration: none; min-height: 36px; display: flex; align-items: center; }
+.st-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; font: 700 calc(var(--u) * .6) var(--font-ui); padding: calc(var(--u) * 1); }
