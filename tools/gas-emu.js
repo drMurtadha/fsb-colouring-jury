@@ -24,12 +24,21 @@ class Sheet {
 }
 const sheets = {}, props = {};
 const pad = n => String(n).padStart(2, '0');
+// Server clock the scripts see; setClock('2033-01-01T00:00:00Z') pins "now" (tests that use fixed client times), setClock() restores it.
+let clockOffset = 0;
+class ServerDate extends Date {
+  constructor(...a) { a.length ? super(...a) : super(Date.now() + clockOffset); }
+  static now() { return Date.now() + clockOffset; }
+  static [Symbol.hasInstance](x) { return x instanceof Date; }   // Date objects made outside the script still count
+}
+const setClock = iso => { clockOffset = iso ? Date.parse(iso) - Date.now() : 0; };
 const ctx = vm.createContext({
-  console, Math, JSON, Date, Object, Array, String, Number, isFinite, isNaN, parseInt, Error, RegExp,
+  console, Math, JSON, Date: ServerDate, Object, Array, String, Number, isFinite, isNaN, parseInt, Error, RegExp,
   Logger: { log() {} },
   Session: { getScriptTimeZone: () => 'Asia/Kuala_Lumpur' },
   Utilities: {
     getUuid: () => crypto.randomUUID(),
+    parseDate: (str) => { const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(str); if (!m) throw new Error('parseDate'); return new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]); },
     formatDate: d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
   },
   LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
@@ -56,4 +65,4 @@ const get = q => JSON.parse(ctx.doGet({ parameter: q }).content);
 const post = b => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(b) } }).content);
 const rows = tab => sheets[tab].rows.slice(1).filter(r => r.some(v => v !== ''));
 const summary = () => { console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0); };
-module.exports = { calls, Sheet, sheets, props, ctx, run, get, post, rows, ok, eq, summary };
+module.exports = { setClock, calls, Sheet, sheets, props, ctx, run, get, post, rows, ok, eq, summary };

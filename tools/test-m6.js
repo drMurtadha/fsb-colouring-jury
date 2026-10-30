@@ -1,7 +1,8 @@
 // M6 check: computeResults against an independent re-implementation of the ranking rules (spec section 8),
 // on seeded data (seed.gs: 60 + 60 artworks) with engineered ties, plus one small worked example.
 // Usage: node tools/test-m6.js
-const { sheets, props, run, get, post, rows, ok, eq, summary } = require('./gas-emu');
+const { setClock, sheets, props, run, get, post, rows, ok, eq, summary } = require('./gas-emu');
+setClock('2033-01-01T00:00:00Z');                          // fixed client times in this file are in the past for the server
 
 run('setup()');
 const A = { k: props.ADMIN_KEY };

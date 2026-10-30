@@ -1,7 +1,8 @@
 // M1/M2 backend check: runs apps-script/*.gs against an in-memory Sheet emulation.
 // Usage: node tools/test-m1.js   (no dependencies)
 // This proves the logic, not the Google runtime; see README for the live smoke test.
-const { Sheet, sheets, props, run, get, post, rows, ok, eq, summary } = require('./gas-emu');
+const { setClock, Sheet, sheets, props, run, get, post, rows, ok, eq, summary } = require('./gas-emu');
+setClock('2033-01-01T00:00:00Z');                          // fixed client times in this file are in the past for the server
 
 // ---- setup ----
 run('setup()');

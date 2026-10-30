@@ -13,6 +13,15 @@
 
 - M6: results, stage and public pages built (`stage/`, `results/`). `node tools/test-m6.js` (22 checks) compares `computeResults` with an independent calculation on 120 seeded artworks: full order, means, tie-breaks (c3, then c1, then override), artworks under the minimum left unranked, publish toggle, public view limited to ID and first name. Stage and public pages checked in the browser against `--demo` data. **The 'hand-calculated spreadsheet' in the acceptance criterion is replaced by that independent script**; if you want a literal spreadsheet comparison, give me the scores export or fill the mock sheet's `Leaderboard`.
 
+- M7: hardening done in code, **device testing not done**. `node tools/test-m7.js` (18 checks): 3 juries x 120 artworks with shuffled order, repeated sends and edits gave exactly 360 rows, each holding the latest scores and the server-computed total, no errors; lock rejects writes; hostile names/notes are stored as text. In the browser, 25 saves + 3 edits through a network that dropped 35% of requests and lost 25% of replies all arrived exactly once. **Not tested:** iOS Safari, Chrome Android, real simultaneity on Google's LockService, real Apps Script latency, a physical print (see the README checklist).
+
+## Fixed during M7
+- **Runaway refresh loop (M3 bug):** the jury home page re-rendered itself after every background refresh, which started another refresh, forever (about 70,000 requests in a minute against the local server). On Apps Script that would have exhausted quota. Now one refresh per visit to the home screen (3 requests).
+- **Formula injection:** a child name or school beginning with `=`, `+`, `-` or `@` from the public form (or a jury note) would have been evaluated as a formula in the Sheet. All text columns are now written as plain text; the admin CSV export also prefixes such cells with `'`.
+- **Clock skew:** if two devices of the same jury have different clocks, an edit could have been silently ignored. The app now stamps an edit at least 1 ms after the stored score of that artwork.
+- **Fewer sheet calls:** a score save went from about 20 to about 12 spreadsheet-service calls (one read per tab, header row cached per request).
+- Added `100vh` fallbacks beside `100dvh` for older iOS; the scanner no longer throws if you leave the scan screen before the camera started.
+
 ## Visual reference (poster.jpg, for M3 onwards)
 Heavy rounded sans lettering with a pale light-blue outline on the title; Category A tile magenta/maroon, Category B tile blue; yellow highlight panels; radiating translucent colour beams and thin curved lines on white. Tokens in spec 15.2 match; sample exact hex values from the image when writing `ui.css`.
 
@@ -51,3 +60,8 @@ Heavy rounded sans lettering with a pale light-blue outline on the title; Catego
 32. **Stage reads `adminOverview`** with the admin key from this browser (spec 9.6 requires the key); it shows the child's full name when `showNamesOnStage` is TRUE. Check the PDPA consent wording before you project names (spec 12).
 33. **Public results** show ranks, ID and first name, no scores. The page polls every 30 s while unpublished.
 34. **Stage is projector-oriented (16:9)** and letterboxes on other shapes; checked only in a roughly square browser pane, not on a real projector.
+35. **Browser support** assumed: iOS Safari 14.5+ (CSS `gap` in flex, `inset`) and a current Chrome on Android. Older iPhones may mis-lay-out the pages.
+36. **Concurrency** relies on `LockService.getScriptLock()` (10 s wait). If three juries save at the same instant, later requests wait; one that waits longer than 10 s returns `BUSY` and the phone retries by itself. Real Apps Script latency (often 1 to 3 s a call) was not measured; a dry run on the real sheet (spec 17, 10 to 11 Nov) is the proper test.
+37. **A save that arrives with an older client time is ignored** (`stale: true`), by design (last write wins). The phone shows the stored score the next time it refreshes.
+39. **Client time is not trusted blindly.** A missing, unreadable or more-than-5-minutes-ahead `updatedAtClient` is replaced by server time before comparing and storing; it is always stored and returned as ISO UTC. Sheet cells in the older `yyyy-mm-dd hh:mm:ss` form are read as script-time-zone local time. A retry of a clamped save gets a later server time and rewrites the same values (harmless, one extra Audit row). A phone clock up to 5 minutes fast can still win over a correct clock inside that window.
+38. **Apps Script quotas**: consumer accounts allow about 20,000 web-app calls a day; 3 juries plus the 15-second admin refresh stay far below that, but leave the admin Overview open on one device only.

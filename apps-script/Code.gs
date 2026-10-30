@@ -196,10 +196,24 @@ function sd_(a) {
   return Math.sqrt(a.reduce(function (x, y) { return x + (y - m) * (y - m); }, 0) / (a.length - 1));
 }
 
+// Client times may be ahead of the server (a phone with a fast clock); beyond this they are replaced by server time.
+var CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+/** Epoch ms from epoch ms, an ISO string, or the sheet's "yyyy-MM-dd HH:mm:ss" (script time zone); 0 if unreadable. */
 function parseTs_(v) {
   if (typeof v === 'number') return v;
-  var t = Date.parse(String(v).replace(/^(\d{4}-\d{2}-\d{2}) /, '$1T'));
+  var s = String(v).trim(), m = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})(:\d{2})?$/.exec(s);
+  if (m) {
+    try { return Utilities.parseDate(m[1] + ' ' + m[2] + (m[3] || ':00'), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss').getTime(); } catch (e) { return 0; }
+  }
+  var t = Date.parse(s);
   return isNaN(t) ? 0 : t;
+}
+
+/** updatedAtClient in one format, ISO UTC, whatever form the cell holds. */
+function isoTs_(v) {
+  var t = parseTs_(v);
+  return t ? new Date(t).toISOString() : '';
 }
 
 function link_(token) { return cfgStr_('baseUrl').replace(/\/+$/, '') + '/j/?t=' + token; }
@@ -220,7 +234,7 @@ function scoreOut_(r) {
   return {
     key: r.key, jid: r.jid, pid: r.pid, category: r.category,
     c: [r.c1, r.c2, r.c3, r.c4, r.c5].map(Number), total: Number(r.total), note: r.note || '',
-    updatedAtClient: r.updatedAtClient, updatedAtServer: r.updatedAtServer
+    updatedAtClient: isoTs_(r.updatedAtClient), updatedAtServer: r.updatedAtServer
   };
 }
 
@@ -304,19 +318,21 @@ function saveScore_(ctx, p) {
   }
   var note = p.note === undefined || p.note === null ? '' : String(p.note);
   if (note.length > 140) throw apiErr_('BAD_INPUT', 'Note is limited to 140 characters');
-  var clientTs = p.updatedAtClient === undefined || p.updatedAtClient === null || p.updatedAtClient === '' ? now_() : p.updatedAtClient;
+  // Last write wins by client time, but a missing, unreadable or far-future time (fast phone clock) is replaced by server time.
+  var nowMs = new Date().getTime(), clientMs = parseTs_(p.updatedAtClient === undefined || p.updatedAtClient === null ? '' : p.updatedAtClient);
+  if (!clientMs || clientMs > nowMs + CLOCK_SKEW_MS) clientMs = nowMs;
 
   var key = ctx.jury.jid + '|' + pid;
   var old = readTab_('Scores').rows.filter(function (r) { return r.key === key; })[0];
-  // Last write wins by client time. An equal timestamp is a retry of the same save: no-op.
-  if (old && parseTs_(old.updatedAtClient) >= parseTs_(clientTs)) {
+  // An equal timestamp is a retry of the same save: no-op.
+  if (old && parseTs_(old.updatedAtClient) >= clientMs) {
     return { saved: false, stale: true, score: scoreOut_(old) };
   }
   var total = total_(c, weights_(part.category));
   var row = {
     key: key, jid: ctx.jury.jid, pid: pid, category: part.category,
     c1: c[0], c2: c[1], c3: c[2], c4: c[3], c5: c[4], total: total, note: note,
-    updatedAtClient: String(clientTs), updatedAtServer: now_()
+    updatedAtClient: new Date(clientMs).toISOString(), updatedAtServer: now_()
   };
   writeRow_('Scores', old ? old._row : null, row);
   audit_(ctx.jury.jid, 'saveScore', key, old ? { c: [old.c1, old.c2, old.c3, old.c4, old.c5], total: old.total } : null,

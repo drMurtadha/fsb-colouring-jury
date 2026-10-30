@@ -1,8 +1,9 @@
 // M7 hardening check, offline: 3 juries x 120 saves with shuffled interleaving, retries and edits; formula-injection
 // safety; call cost per save. The emulator is single-threaded, so this shows ordering and idempotency, not true
 // simultaneity (Google's LockService provides that). Usage: node tools/test-m7.js
-const { calls, sheets, props, run, get, post, rows, ok, eq, summary } = require('./gas-emu');
+const { setClock, calls, sheets, props, run, get, post, rows, ok, eq, summary } = require('./gas-emu');
 const { Sheet } = require('./gas-emu');
+setClock('2033-01-01T00:00:00Z');                          // fixed client times below are in the past for the server
 
 run('setup()');
 const A = { k: props.ADMIN_KEY };
@@ -89,4 +90,32 @@ const si = sheets.Scores.rows.findIndex(x => x[0] === 'J01|A-003');
 eq(sheets.Scores.fmts[(si + 1) + ',' + (sheets.Scores.rows[0].indexOf('note') + 1)], '@', 'jury note cell is plain-text formatted');
 eq(sheets.Scores.fmts[(si + 1) + ',' + (sheets.Scores.rows[0].indexOf('c1') + 1)], 'General', 'numeric score cells stay numeric');
 
+// future client time: a phone clock far ahead must not freeze the score against later real saves
+const FUT = { t: one.token, pid: 'A-006' };
+setClock('2034-01-01T10:00:00Z');
+r = post({ action: 'saveScore', ...FUT, c: [7, 6, 8, 10, 5], updatedAtClient: '2040-06-01T00:00:00Z' });
+ok(r.ok && r.data.saved && r.data.score.updatedAtClient === '2034-01-01T10:00:00.000Z', 'client time years ahead is stored as server time, ISO UTC');
+setClock('2034-01-01T10:01:00Z');
+r = post({ action: 'saveScore', ...FUT, c: [9, 9, 9, 9, 9], updatedAtClient: '2034-01-01T10:01:00Z' });
+ok(r.ok && r.data.saved && r.data.score.c[0] === 9, 'a later real save is accepted, not rejected as stale');
+r = post({ action: 'saveScore', ...FUT, c: [2, 2, 2, 2, 2], updatedAtClient: '2034-01-01T10:04:00Z' });
+ok(r.data.saved && r.data.score.updatedAtClient === '2034-01-01T10:04:00.000Z', 'a client time 3 minutes ahead is kept as sent');
+r = post({ action: 'saveScore', ...FUT, c: [3, 3, 3, 3, 3], updatedAtClient: '2034-01-01T10:07:00Z' });
+ok(r.data.stale && r.data.score.c[0] === 2, 'a client time 6 minutes ahead is clamped to server time (10:01), so it does not overtake the 10:04 save');
+setClock('2034-01-01T10:10:00Z');
+r = post({ action: 'saveScore', ...FUT, c: [4, 4, 4, 4, 4], updatedAtClient: '2034-01-01T10:09:59Z' });
+ok(r.data.saved && r.data.score.c[0] === 4, 'and a normal save after that goes through');
+
+// mixed formats: a row in the mock sheet's "yyyy-mm-dd hh:mm:ss" local time is read as local time and reported as ISO UTC
+const two = juries[1], mockLocal = new Date(2026, 9, 30, 18, 50, 0);
+const sc = sheets.Scores.rows;
+sc.splice(sc.findIndex(x => x[0] === 'J02|A-020'), 1);      // replace the seeded row with a mock-format one
+sc.push(['J02|A-020', 'J02', 'A-020', 'A', 5, 5, 5, 5, 5, 50, '', '2026-10-30 18:50:00', '2026-10-30 18:50:02']);
+const seen = get({ action: 'juryScores', t: two.token }).data.find(x => x.key === 'J02|A-020');
+eq(seen.updatedAtClient, mockLocal.toISOString(), 'mock-format time is parsed as local time and returned as ISO UTC');
+r = post({ action: 'saveScore', t: two.token, pid: 'A-020', c: [6, 6, 6, 6, 6], updatedAtClient: new Date(mockLocal - 60000).toISOString() });
+ok(r.data.stale, 'a save one minute older than the mock row is ignored');
+r = post({ action: 'saveScore', t: two.token, pid: 'A-020', c: [6, 6, 6, 6, 6], updatedAtClient: new Date(+mockLocal + 60000).toISOString() });
+ok(r.data.saved, 'a save one minute newer than the mock row is accepted');
+eq(sc.find(x => x[0] === 'J02|A-020')[11], new Date(+mockLocal + 60000).toISOString(), 'it is stored as ISO UTC');
 summary();

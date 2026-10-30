@@ -45,14 +45,14 @@ http.createServer((req, res) => {
     return send(res, 200, 'text/javascript', "export const CONFIG = { API_URL: '/api', BASE_URL: '', DEFAULT_LANG: 'bm' };");
   }
   if (u.pathname === '/api') {
-    if (offline) { req.destroy(); return; }
+    if (offline) { req.socket.destroy(); return; }
     served.api++;
-    if (Math.random() < flaky.drop) { served.dropped++; req.destroy(); return; }
+    if (Math.random() < flaky.drop) { served.dropped++; req.socket.destroy(); return; }
     if (req.method === 'POST') {
       let b = ''; req.on('data', d => (b += d));
       req.on('end', () => {
         const out = ctx.doPost({ postData: { contents: b } }).content;
-        if (Math.random() < flaky.lost) { served.lost++; req.destroy(); return; }   // processed, but the phone never hears back
+        if (Math.random() < flaky.lost) { served.lost++; req.socket.destroy(); return; }   // processed, but the phone never hears back
         send(res, 200, 'application/json', out);
       });
       return;
