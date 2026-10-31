@@ -4,7 +4,7 @@ import { mountSchedule } from '../assets/schedule.js';
 import { store, getToken, setToken, refresh, cached, myScores, saveScore, pendingCount, failedSaves, clearFailed, subscribe } from '../assets/api.js';
 
 addStrings({
-  progTitle: ['Aturcara', 'Programme'], progNow: ['Sekarang', 'Now'], progJury: ['Juri', 'Jury'], progTentative: ['Tentatif', 'Tentative']
+  progTitle: ['Aturcara', 'Programme'], progNow: ['Sekarang', 'Now'], progJury: ['Juri', 'Jury'], progTentative: ['Tentatif', 'Tentative'], manualOpen: ['Buka manual juri', 'Open jury manual']
 });
 const view = document.getElementById('view');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -159,7 +159,8 @@ function viewHome(refreshAfter = true) {
     <details class="settings"><summary>${esc(t('settings'))}</summary>
       <div class="setrow"><span>${esc(t('theme'))}</span>${seg('theme', th, [['auto', t('themeAuto')], ['light', t('themeLight')], ['dark', t('themeDark')]])}</div>
       <div class="setrow"><span>${esc(t('inputMode'))}</span>${seg('inputMode', im, [['chips', t('chips')], ['slider', t('slider')]])}</div>
-      <p class="hint" style="margin:6px 0 0">${esc(t('holdHint'))}</p></details></div>`;
+      <p class="hint" style="margin:6px 0 0">${esc(t('holdHint'))}</p>
+      <div class="setrow"><span>Manual</span><a class="linkbtn" href="../manual/#juri" target="_blank" rel="noopener" style="display:inline-flex;align-items:center">${esc(t('manualOpen'))}</a></div></details></div>`;
   bindLang();
   if (sched.length) mountSchedule($('#progBody'), () => ({ items: sched, lang: getLang(), labels: { now: t('progNow'), jury: t('progJury') } }));
   const clr = $('#clrFail'); if (clr) clr.onclick = () => { clearFailed(); render(); };
