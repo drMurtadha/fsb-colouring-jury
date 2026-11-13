@@ -92,6 +92,18 @@ It prints two jury links (`http://localhost:8080/j/?t=...`). Open one on your ph
 5. Lock: `.../__lock?on=1` and reopen a score: read-only with the closed message.
 6. Press and hold a criterion name for the guidance sheet. Settings on the home page: theme and buttons/slider.
 
+## Correcting an imported registration
+
+Participant records are stored in the live Google Sheets database, not in this repository. Do not commit identity numbers or guardian contact details to GitHub.
+
+The current `syncRegistrations` action adds new registrations only: it skips an existing `formRowKey` and does not apply later edits to an imported row. Editing the organiser's response sheet alone therefore does not update an existing participant.
+
+For a verified correction:
+1. Match the existing participant to the organiser's source row. Keep the existing `pid` and `formRowKey` so printed QR labels and scores remain linked.
+2. Update the corresponding record in `Participants` and the matching normalised `Form Responses 1` snapshot in the backend database. Derive age from the verified date of birth and `Config.eventDate`; check that the category still matches.
+3. If a temporary `absent` status was used only while awaiting this verification, restore `active` once resolved. Preserve `checkedIn`; correcting registration details does not mean the participant has arrived. Do not reactivate a genuinely absent or disqualified participant.
+4. Record the correction and source reference in `reviewNote` and `Audit`, then reload the admin dashboard and verify counts. Registered includes all statuses; category coverage uses active participants.
+
 ## Test M2 (registration sync)
 
 ```bash
