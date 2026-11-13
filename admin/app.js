@@ -13,7 +13,7 @@ addStrings({
   juryLastSeen: ['Juri terakhir dilihat', 'Jury last seen'], never: ['belum pernah', 'never'], minAgo: ['{n} min lalu', '{n} min ago'],
   search: ['Cari ID atau nama', 'Search ID or name'], notIn: ['Belum daftar masuk sahaja', 'Not checked in only'],
   sync: ['Segerak pendaftaran', 'Sync registrations'], syncOut: ['Ditambah {a}, dilangkau {s}', 'Added {a}, skipped {s}'],
-  walkin: ['Peserta jalan masuk', 'Walk-in'], childName: ['Nama kanak-kanak', 'Child name'], age: ['Umur', 'Age'],
+  walkin: ['Peserta walk-in', 'Walk-in participants'], childName: ['Nama kanak-kanak', 'Child name'], age: ['Umur', 'Age'],
   gName: ['Nama penjaga', 'Guardian name'], gPhone: ['WhatsApp penjaga', 'Guardian WhatsApp'], add: ['Tambah', 'Add'],
   added: ['{pid} ditambah', '{pid} added'], printQr: ['Cetak QR', 'Print QR'], cat: ['Kat.', 'Cat.'], status: ['Status', 'Status'],
   checkin: ['Daftar masuk', 'Check in'], checkedInOk: ['✓ Sudah masuk', '✓ Checked in'], undo: ['Batal', 'Undo'],
