@@ -239,10 +239,16 @@ function bindParticipants() {
     } catch (e) { ui.out = e.message; }
     await load();
   };
-  $('#wf').onsubmit = async ev => {
+  const walkForm = $('#wf');
+  walkForm.onsubmit = async ev => {
     ev.preventDefault();
-    const r = await act('participantUpsert', { childName: $('#wn').value, age: $('#wa').value, guardianName: $('#wg').value, guardianPhone: $('#wp').value }, null);
-    if (r) { toast(t('added', { pid: r.pid })); ui.out = ''; const w = $('#wres'); if (w) w.innerHTML = `<a class="btn sm" href="../print/?${staffMode ? 'mode=staff&' : ''}ids=${esc(r.pid)}">${esc(t('printQr'))} ${esc(r.pid)}</a>`; }
+    if (walkForm.dataset.saving === 'true') return;
+    walkForm.dataset.saving = 'true';
+    const button = $('button', walkForm); button.disabled = true;
+    try {
+      const r = await act('participantUpsert', { childName: $('#wn').value, age: $('#wa').value, guardianName: $('#wg').value, guardianPhone: $('#wp').value }, null);
+      if (r) { toast(t('added', { pid: r.pid })); ui.out = ''; const w = $('#wres'); if (w) w.innerHTML = `<a class="btn sm" href="../print/?${staffMode ? 'mode=staff&' : ''}ids=${esc(r.pid)}">${esc(t('printQr'))} ${esc(r.pid)}</a>`; }
+    } finally { walkForm.dataset.saving = 'false'; button.disabled = false; }
   };
 }
 

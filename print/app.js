@@ -89,9 +89,10 @@ function sheetsHtml(list) {
 }
 
 function view() {
-  const L = st.layout, list = chosen(), sh = sheetsHtml(list);
+  const L = st.layout;
   const walks = data.participants.filter(p => p.source === 'walkin');
   if (st.mode === 'walk' && !st.walk && walks.length) st.walk = walks[walks.length - 1].pid;
+  const list = chosen(), sh = sheetsHtml(list);
   const radio = (v, label) => `<label class="in"><input type="radio" name="mode" value="${v}" ${st.mode === v ? 'checked' : ''}> ${esc(label)}</label>`;
   const nf = (k, label) => `<label>${esc(label)}<input type="number" step="0.1" data-l="${k}" value="${L[k]}"></label>`;
   const keep = $('#idsIn') === document.activeElement;
