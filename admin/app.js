@@ -37,7 +37,10 @@ addStrings({
   lockedWarn: ['Penilaian dikunci: juri tidak boleh menyimpan.', 'Scoring is locked: juries cannot save.'],
   keyPrompt: ['Kunci admin', 'Admin key'], enter: ['Masuk', 'Enter'], badKey: ['Kunci admin tidak sah.', 'Invalid admin key.'],
   openPrint: ['Buka halaman cetak label QR', 'Open the QR label print page'], deskMode: ['Mod kaunter', 'Desk mode'],
-  pidShort: ['ID', 'ID'], refreshed: ['Dikemas kini', 'Updated']
+  pidShort: ['ID', 'ID'], refreshed: ['Dikemas kini', 'Updated'],
+  editParticipant: ['Edit maklumat', 'Edit details'], schoolLabel: ['Sekolah / tadika', 'School / kindergarten'],
+  editParticipantHint: ['ID dan QR asal dikekalkan. Umur kosong akan mengekalkan nilai sedia ada.', 'The original ID and QR are kept. Leave age blank to keep its existing value.'],
+  participantSaved: ['Maklumat {pid} disimpan', 'Details for {pid} saved']
 });
 
 const root = document.getElementById('root');
@@ -55,7 +58,7 @@ if (q.get('k')) {
 }
 
 let data = null;
-const ui = { search: '', notIn: false, editJury: null, sj: '', sp: '', paper: null, out: '' };
+const ui = { search: '', notIn: false, editJury: null, editParticipant: null, sj: '', sp: '', paper: null, out: '' };
 
 function toast(msg, warn) {
   const el = document.getElementById('toast');
@@ -140,12 +143,28 @@ function partRows() {
   if (!list.length) return `<tr><td colspan="8">${esc(t('noData'))}</td></tr>`;
   return list.map(p => {
     const ck = `<button class="btn sm ck ${p.checkedIn ? 'on' : 'primary'}" data-ck="${esc(p.pid)}">${esc(p.checkedIn ? t('checkedInOk') : t('checkin'))}</button>`;
-    if (desk) return `<tr><td><b>${esc(p.pid)}</b></td><td>${esc(p.childName)}</td><td class="num">${esc(p.age)}</td><td>${esc(p.category)}</td><td>${ck}</td></tr>`;
+    const editButton = `<button class="btn sm" data-part-edit="${esc(p.pid)}">${esc(t('editParticipant'))}</button>`;
+    if (desk) return `<tr><td><b>${esc(p.pid)}</b></td><td>${esc(p.childName)}</td><td class="num">${esc(p.age)}</td><td>${esc(p.category)}</td><td>${ck} ${editButton}</td></tr>`;
     const catSel = `<select data-cat="${esc(p.pid)}">${['A', 'B'].map(c => `<option ${c === p.category ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
     const stSel = `<select data-st="${esc(p.pid)}">${['active', 'absent', 'dq'].map(c => `<option ${c === p.status ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
     return `<tr><td><b>${esc(p.pid)}</b></td><td>${esc(p.childName)}</td><td class="num">${esc(p.age)}</td><td>${catSel}</td><td>${stSel}</td>
-      <td>${esc(p.guardianName)}<br><small>${esc(p.guardianPhone)}</small></td><td>${ck}</td><td><a class="btn sm" href="../print/?ids=${esc(p.pid)}">${esc(t('printQr'))}</a></td></tr>`;
+      <td>${esc(p.guardianName)}<br><small>${esc(p.guardianPhone)}</small></td><td>${ck}</td><td>${editButton} <a class="btn sm" href="../print/?ids=${esc(p.pid)}">${esc(t('printQr'))}</a></td></tr>`;
   }).join('');
+}
+
+function participantEditPanel() {
+  const p = parts().find(x => x.pid === ui.editParticipant);
+  if (!p) return '';
+  return `<div class="panel" id="participantEditor"><h2>${esc(t('editParticipant'))} · ${esc(p.pid)}</h2>
+    <p class="hint">${esc(t('editParticipantHint'))}</p><form class="form" id="participantEditForm" data-pid="${esc(p.pid)}">
+      <label>${esc(t('childName'))}<input id="en" required value="${esc(p.childName)}"></label>
+      <label>${esc(t('age'))}<input id="ea" type="number" min="0" max="12" step="1" value="${esc(p.age)}" style="width:80px"></label>
+      <label>${esc(t('gName'))}<input id="eg" value="${esc(p.guardianName)}"></label>
+      <label>${esc(t('gPhone'))}<input id="ep" inputmode="tel" value="${esc(p.guardianPhone)}"></label>
+      <label>${esc(t('schoolLabel'))}<input id="es" value="${esc(p.school)}"></label>
+      <button class="btn sm primary" id="participantSave">${esc(t('save'))}</button>
+      <button class="btn sm" type="button" id="participantEditCancel">${esc(t('cancel'))}</button>
+    </form></div>`;
 }
 
 function viewParticipants() {
@@ -156,6 +175,7 @@ function viewParticipants() {
       <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="notIn" ${ui.notIn ? 'checked' : ''}> ${esc(t('notIn'))}</label>
       ${desk ? '' : `<button class="btn sm primary" id="syncBtn">${esc(t('sync'))}</button>`}</div>
       ${ui.out ? `<pre class="out">${esc(ui.out)}</pre>` : ''}</div>
+    ${participantEditPanel()}
     <div class="panel"><h2>${esc(t('walkin'))}</h2><form class="form" id="wf">
       <label>${esc(t('childName'))}<input id="wn" required></label><label>${esc(t('age'))}<input id="wa" type="number" min="0" max="12" required style="width:80px"></label>
       <label>${esc(t('gName'))}<input id="wg"></label><label>${esc(t('gPhone'))}<input id="wp" inputmode="tel"></label>
@@ -166,11 +186,38 @@ function viewParticipants() {
 function bindParticipants() {
   const body = $('#pbody');
   const bindRows = () => {
+    $$('[data-part-edit]', body).forEach(b => b.onclick = () => {
+      ui.editParticipant = b.dataset.partEdit; render();
+      const editor = $('#participantEditor'); if (editor) editor.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      const name = $('#en'); if (name) name.focus({ preventScroll: true });
+    });
     $$('[data-ck]', body).forEach(b => b.onclick = () => { const p = parts().find(x => x.pid === b.dataset.ck); act('participantUpsert', { pid: p.pid, checkedIn: !p.checkedIn }); });
     $$('[data-cat]', body).forEach(s => s.onchange = () => act('participantUpsert', { pid: s.dataset.cat, category: s.value }, s.dataset.cat));
     $$('[data-st]', body).forEach(s => s.onchange = () => act('participantUpsert', { pid: s.dataset.st, status: s.value }, s.dataset.st));
   };
   bindRows();
+  const editForm = $('#participantEditForm');
+  if (editForm) {
+    $('#participantEditCancel').onclick = () => { ui.editParticipant = null; render(); };
+    editForm.onsubmit = async ev => {
+      ev.preventDefault();
+      const pid = editForm.dataset.pid;
+      if (!parts().some(p => p.pid === pid)) { toast(t('noData'), true); return; }
+      const childName = $('#en').value.trim();
+      if (!childName) { $('#en').focus(); return; }
+      const ageValue = $('#ea').value.trim();
+      if (ageValue && (!Number.isInteger(Number(ageValue)) || Number(ageValue) < 0 || Number(ageValue) > 12)) { $('#ea').reportValidity(); return; }
+      const payload = { pid, childName, guardianName: $('#eg').value.trim(), guardianPhone: $('#ep').value.trim(), school: $('#es').value.trim() };
+      if (ageValue) payload.age = Number(ageValue);
+      const saveButton = $('#participantSave'); saveButton.disabled = true;
+      try {
+        await apiPost('participantUpsert', Object.assign({ k: key() }, payload));
+        ui.editParticipant = null;
+        toast(t('participantSaved', { pid }));
+        await load();
+      } catch (e) { toast(e.message, true); saveButton.disabled = false; }
+    };
+  }
   $('#srch').oninput = ev => { ui.search = ev.target.value; body.innerHTML = partRows(); bindRows(); };
   $('#notIn').onchange = ev => { ui.notIn = ev.target.checked; body.innerHTML = partRows(); bindRows(); };
   const sb = $('#syncBtn');
@@ -358,3 +405,4 @@ onLang(render);
 window.addEventListener('hashchange', render);
 setInterval(() => { if (!document.hidden && tab() === 'overview') load(true); }, 15000);   // spec 11: overview refreshes every 15 s
 load();
+
