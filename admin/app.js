@@ -4,6 +4,7 @@ import { t, getLang, setLang, onLang, addStrings } from '../assets/i18n.js';
 import { store, apiGet, apiPost } from '../assets/api.js';
 
 addStrings({
+  tStaff: ['Petugas', 'Registration staff'], staffHelp: ['Pautan peribadi: pendaftaran sahaja. Jangan kongsi pautan.', 'Personal registration-only links. Do not share them.'], staffInvalid: ['Pautan petugas tidak sah atau telah dinyahaktifkan. Hubungi admin.', 'This staff link is invalid or revoked. Contact admin.'],
   adminTitle: ['Konsol Admin', 'Admin console'],
   tOverview: ['Gambaran', 'Overview'], tParticipants: ['Peserta', 'Participants'], tJuries: ['Juri', 'Juries'],
   tScores: ['Skor', 'Scores'], tResults: ['Keputusan', 'Results'], tPrint: ['Cetak', 'Print'], tCheckin: ['Daftar masuk', 'Check-in'],
@@ -51,7 +52,14 @@ const isT = v => v === true || String(v).trim().toUpperCase() === 'TRUE';
 const key = () => store.get('fsb.adminKey', '');
 
 const q = new URLSearchParams(location.search);
-const desk = q.get('mode') === 'desk';
+const staffMode = q.has('s') || q.get('mode') === 'staff';
+const desk = staffMode || q.get('mode') === 'desk';
+if (q.get('s')) {
+  store.set('fsb.staffToken', q.get('s').trim().toUpperCase());
+  history.replaceState(null, '', location.pathname + '?mode=staff' + location.hash);
+}
+const credentials = () => staffMode ? { s: store.get('fsb.staffToken', '') } : { k: key() };
+const postRegistration = body => apiPost(staffMode ? 'staffParticipantUpsert' : 'participantUpsert', Object.assign(credentials(), body));
 if (q.get('k')) {
   store.set('fsb.adminKey', q.get('k'));
   history.replaceState(null, '', location.pathname + (desk ? '?mode=desk' : '') + location.hash);
@@ -67,9 +75,11 @@ function toast(msg, warn) {
 }
 
 async function load(quiet) {
-  try { data = await apiGet('adminOverview', { k: key() }); }
+  try { data = await apiGet(staffMode ? 'staffOverview' : 'adminOverview', credentials());
+    if (!staffMode && tab() === 'staff') data.staffAccounts = await apiGet('staffList', { k: key() }); }
   catch (e) {
     if (quiet) return;
+    if (staffMode) { root.innerHTML = `<div class="adm"><p class="err">${esc(e.code === 'UNAUTHORIZED' ? t('staffInvalid') : e.message)}</p><button class="btn sm" id="staffRetry">↻</button></div>`; $('#staffRetry').onclick = () => load(); return; }
     if (e.code === 'UNAUTHORIZED' || !key()) return keyForm(e.code === 'UNAUTHORIZED' && key() ? t('badKey') : '');
     root.innerHTML = `<div class="adm"><p class="err">${esc(e.message)}</p><button class="btn sm" id="rt">↻</button></div>`; $('#rt').onclick = () => load();
     return;
@@ -79,7 +89,7 @@ async function load(quiet) {
 
 async function act(action, body, okMsg) {
   try {
-    const r = await apiPost(action, Object.assign({ k: key() }, body));
+    const r = staffMode && action === 'participantUpsert' ? await postRegistration(body) : await apiPost(action, Object.assign({ k: key() }, body));
     if (okMsg) toast(okMsg);
     await load();
     return r;
@@ -144,11 +154,11 @@ function partRows() {
   return list.map(p => {
     const ck = `<button class="btn sm ck ${p.checkedIn ? 'on' : 'primary'}" data-ck="${esc(p.pid)}">${esc(p.checkedIn ? t('checkedInOk') : t('checkin'))}</button>`;
     const editButton = `<button class="btn sm" data-part-edit="${esc(p.pid)}">${esc(t('editParticipant'))}</button>`;
-    if (desk) return `<tr><td><b>${esc(p.pid)}</b></td><td>${esc(p.childName)}</td><td class="num">${esc(p.age)}</td><td>${esc(p.category)}</td><td>${ck} ${editButton}</td></tr>`;
+    if (desk) return `<tr><td><b>${esc(p.pid)}</b></td><td>${esc(p.childName)}</td><td class="num">${esc(p.age)}</td><td>${esc(p.category)}</td><td>${ck} ${editButton} <a class="btn sm" href="../print/?${staffMode ? 'mode=staff&' : ''}ids=${esc(p.pid)}">${esc(t('printQr'))}</a></td></tr>`;
     const catSel = `<select data-cat="${esc(p.pid)}">${['A', 'B'].map(c => `<option ${c === p.category ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
     const stSel = `<select data-st="${esc(p.pid)}">${['active', 'absent', 'dq'].map(c => `<option ${c === p.status ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
     return `<tr><td><b>${esc(p.pid)}</b></td><td>${esc(p.childName)}</td><td class="num">${esc(p.age)}</td><td>${catSel}</td><td>${stSel}</td>
-      <td>${esc(p.guardianName)}<br><small>${esc(p.guardianPhone)}</small></td><td>${ck}</td><td>${editButton} <a class="btn sm" href="../print/?ids=${esc(p.pid)}">${esc(t('printQr'))}</a></td></tr>`;
+      <td>${esc(p.guardianName)}<br><small>${esc(p.guardianPhone)}</small></td><td>${ck}</td><td>${editButton} <a class="btn sm" href="../print/?${staffMode ? 'mode=staff&' : ''}ids=${esc(p.pid)}">${esc(t('printQr'))}</a></td></tr>`;
   }).join('');
 }
 
@@ -211,7 +221,7 @@ function bindParticipants() {
       if (ageValue) payload.age = Number(ageValue);
       const saveButton = $('#participantSave'); saveButton.disabled = true;
       try {
-        await apiPost('participantUpsert', Object.assign({ k: key() }, payload));
+        await postRegistration(payload);
         ui.editParticipant = null;
         toast(t('participantSaved', { pid }));
         await load();
@@ -232,7 +242,7 @@ function bindParticipants() {
   $('#wf').onsubmit = async ev => {
     ev.preventDefault();
     const r = await act('participantUpsert', { childName: $('#wn').value, age: $('#wa').value, guardianName: $('#wg').value, guardianPhone: $('#wp').value }, null);
-    if (r) { toast(t('added', { pid: r.pid })); ui.out = ''; const w = $('#wres'); if (w) w.innerHTML = `<a class="btn sm" href="../print/?ids=${esc(r.pid)}">${esc(t('printQr'))} ${esc(r.pid)}</a>`; }
+    if (r) { toast(t('added', { pid: r.pid })); ui.out = ''; const w = $('#wres'); if (w) w.innerHTML = `<a class="btn sm" href="../print/?${staffMode ? 'mode=staff&' : ''}ids=${esc(r.pid)}">${esc(t('printQr'))} ${esc(r.pid)}</a>`; }
   };
 }
 
@@ -382,13 +392,36 @@ function bindResults() {
   };
 }
 
+// ---- registration staff invitations (admin only) --------------------------
+function viewStaff() {
+  const rows = (data.staffAccounts || []).map(p => `<tr><td>${esc(p.sid)}</td><td>${esc(p.name)}</td><td>${esc(p.whatsapp)}</td><td>${p.active ? esc(t('activeL')) : esc(t('deactivate'))}</td><td>
+    <a class="btn sm primary" target="_blank" rel="noopener" href="${esc(p.waUrl)}">${esc(t('sendWa'))}</a>
+    <button class="btn sm" data-staff-copy="${esc(p.sid)}">${esc(t('copyLink'))}</button>
+    <button class="btn sm" data-staff-rotate="${esc(p.sid)}">${esc(t('regen'))}</button>
+    <button class="btn sm" data-staff-toggle="${esc(p.sid)}">${esc(p.active ? t('deactivate') : t('activate'))}</button></td></tr>`).join('');
+  return `<div class="panel"><h2>${esc(t('tStaff'))}</h2><p>${esc(t('staffHelp'))}</p><form class="form" id="staffForm">
+    <label>${esc(t('name'))}<input id="staffName" required></label><label>${esc(t('whatsapp'))}<input id="staffPhone" inputmode="tel" required></label>
+    <button class="btn sm primary" id="staffAdd">${esc(t('add'))}</button></form></div>
+    <div class="panel tw"><table><thead><tr><th>ID</th><th>${esc(t('name'))}</th><th>${esc(t('whatsapp'))}</th><th>${esc(t('status'))}</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="5">${esc(t('noData'))}</td></tr>`}</tbody></table></div>`;
+}
+function bindStaff() {
+  const find = sid => (data.staffAccounts || []).find(p => p.sid === sid);
+  $('#staffForm').onsubmit = async ev => {
+    ev.preventDefault(); const b = $('#staffAdd'); b.disabled = true;
+    await act('staffUpsert', { name: $('#staffName').value.trim(), whatsapp: $('#staffPhone').value.trim() }, t('save'));
+  };
+  $$('[data-staff-copy]').forEach(b => b.onclick = async () => { const p = find(b.dataset.staffCopy); try { await navigator.clipboard.writeText(p.link); toast(t('copied')); } catch (e) { window.prompt(t('copyLink'), p.link); } });
+  $$('[data-staff-rotate]').forEach(b => b.onclick = () => { if (window.confirm(t('regenQ'))) act('staffRegenerate', { sid: b.dataset.staffRotate }, t('regen')); });
+  $$('[data-staff-toggle]').forEach(b => b.onclick = () => { const p = find(b.dataset.staffToggle); act('staffUpsert', { sid: p.sid, active: !p.active }); });
+}
+
 // ---- shell ------------------------------------------------------------------------------------
 
 function render() {
   if (!data) return;
   const cur = tab();
-  const tabs = desk ? [] : [['overview', 'tOverview'], ['participants', 'tParticipants'], ['juries', 'tJuries'], ['scores', 'tScores'], ['results', 'tResults']];
-  const views = { overview: viewOverview, participants: viewParticipants, juries: viewJuries, scores: viewScores, results: viewResults };
+  const tabs = desk ? [] : [['overview', 'tOverview'], ['participants', 'tParticipants'], ['juries', 'tJuries'], ['staff', 'tStaff'], ['scores', 'tScores'], ['results', 'tResults']];
+  const views = { overview: viewOverview, participants: viewParticipants, juries: viewJuries, scores: viewScores, results: viewResults, staff: viewStaff };
   const body = cur === 'print' ? `<div class="panel"><a class="btn sm primary" href="../print/">${esc(t('openPrint'))}</a></div>` : (views[cur] || viewOverview)();
   root.innerHTML = `<div class="adm ${desk ? 'desk' : ''}"><header><h1>${esc(cfg().eventName || t('adminTitle'))} · ${esc(desk ? t('deskMode') : t('adminTitle'))}</h1>
       <button class="lang" id="langBtn">${getLang() === 'bm' ? 'EN' : 'BM'}</button></header>
@@ -399,10 +432,12 @@ function render() {
   else if (cur === 'juries') bindJuries();
   else if (cur === 'scores') bindScores();
   else if (cur === 'results') bindResults();
+  else if (cur === 'staff') bindStaff();
 }
 
 onLang(render);
-window.addEventListener('hashchange', render);
+window.addEventListener('hashchange', () => { if (!staffMode && tab() === 'staff') load(); else render(); });
 setInterval(() => { if (!document.hidden && tab() === 'overview') load(true); }, 15000);   // spec 11: overview refreshes every 15 s
 load();
+
 

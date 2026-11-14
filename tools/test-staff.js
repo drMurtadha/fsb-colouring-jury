@@ -1,0 +1,28 @@
+const {run,post,get,props,rows,ok,eq,summary}=require('./gas-emu');
+run('setup()');const A={k:props.ADMIN_KEY};
+post({action:'setConfig',...A,key:'baseUrl',value:'https://example.test/contest'});
+let create=post({action:'staffUpsert',...A,name:'Counter One',whatsapp:'0123456789'});ok(create.ok,'admin creates staff');
+const sid=create.data.sid;let s=new URL(create.data.link).searchParams.get('s');ok(s.length===24,'120-bit staff token');
+ok(create.data.waUrl.startsWith('https://wa.me/60123456789'),'normalised invitation');
+let jury=post({action:'juryUpsert',...A,name:'Judge',whatsapp:'0123456789',categories:'A,B'}).data;
+ok(get({action:'staffOverview',s:jury.token}).error==='UNAUTHORIZED','jury cannot act as staff');
+ok(get({action:'juryMe',t:s}).error==='UNAUTHORIZED','staff cannot act as jury');
+for(const action of ['adminOverview','staffList'])ok(get({action,s}).error==='UNAUTHORIZED','staff denied '+action);
+for(const action of ['setConfig','computeResults','scoreDelete','syncRegistrations','participantDelete','participantUpsert','juryUpsert','juryRegenerate','juryDelete','staffUpsert','staffRegenerate'])ok(post({action,s}).error==='UNAUTHORIZED','staff denied '+action);
+ok(post({action:'saveScore',t:s,pid:'A-001',c:[5,5,5,5,5]}).error==='UNAUTHORIZED','staff denied scoring');
+let p=post({action:'staffParticipantUpsert',s,childName:'Walk-in child',age:8,guardianName:'Guardian',guardianPhone:'0123456789'});ok(p.ok,'staff adds walk-in');const pid=p.data.pid;eq(pid,'A-001','normal ID allocated');
+for(const field of ['category','status','dob','token','mykid','k']){let b={action:'staffParticipantUpsert',s,pid};b[field]='bad';ok(post(b).error==='FORBIDDEN','staff denied field '+field);}
+ok(post({action:'staffParticipantUpsert',s,pid,age:5}).error==='FORBIDDEN','staff cannot move age category');
+ok(post({action:'staffParticipantUpsert',s,childName:'Adult',age:13}).error==='BAD_INPUT','staff cannot add adult');
+ok(post({action:'staffParticipantUpsert',s,pid:'A-999',childName:'Unknown'}).error==='NOT_FOUND','unknown existing ID not recreated');
+ok(post({action:'staffParticipantUpsert',s,pid,childName:'Corrected',school:'School'}).ok,'staff edits existing ID');
+ok(post({action:'staffParticipantUpsert',s,pid,checkedIn:false}).ok,'staff can undo check-in');eq(rows('Participants').length,1,'no duplicate on edit');
+run("writeRow_('Participants',2,{mykid:'private',email:'private@example.test'})");
+let ov=get({action:'staffOverview',s});ok(ov.ok,'staff reads registration');ok(!JSON.stringify(ov).includes('private'),'no identity numbers or emails to staff');
+ok(!('scores' in ov.data)&&!('juries' in ov.data)&&!('staffAccounts' in ov.data),'no privileged datasets');
+ok(rows('Audit').some(r=>r[1]==='staff:'+sid),'audit identifies staff');
+ok(!JSON.stringify(rows('Audit')).includes(s),'tokens omitted from audit');
+let rotated=post({action:'staffRegenerate',...A,sid});ok(rotated.ok,'admin rotates link');let next=new URL(rotated.data.link).searchParams.get('s');ok(next!==s,'new token');ok(get({action:'staffOverview',s}).error==='UNAUTHORIZED','old token revoked');ok(get({action:'staffOverview',s:next}).ok,'replacement token works');
+post({action:'staffUpsert',...A,sid,active:false});ok(get({action:'staffOverview',s:next}).error==='UNAUTHORIZED','deactivation enforced on server');
+ok(post({action:'staffParticipantUpsert',s:next,pid,childName:'Blocked'}).error==='UNAUTHORIZED','revoked link cannot write');
+summary();

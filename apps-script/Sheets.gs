@@ -6,6 +6,7 @@
 
 var TABS = {
   Participants: ['pid', 'category', 'childName', 'age', 'dob', 'guardianName', 'guardianPhone', 'school', 'source', 'formRowKey', 'checkedIn', 'status', 'createdAt'],
+  Staff: ['sid', 'name', 'whatsapp', 'token', 'active', 'lastSeen', 'createdAt'],
   Jury: ['jid', 'name', 'whatsapp', 'categories', 'isHead', 'token', 'active', 'lastSeen', 'createdAt'],
   Scores: ['key', 'jid', 'pid', 'category', 'c1', 'c2', 'c3', 'c4', 'c5', 'total', 'note', 'updatedAtClient', 'updatedAtServer'],
   Config: ['key', 'value'],
@@ -18,6 +19,7 @@ var TABS = {
 // "=" (from the public form, or typed by a jury) is stored as text and never evaluated as a formula.
 var TEXT_COLS = {
   Participants: ['pid', 'category', 'childName', 'dob', 'guardianName', 'guardianPhone', 'school', 'source', 'formRowKey', 'status', 'createdAt'],
+  Staff: ['sid', 'name', 'whatsapp', 'token', 'lastSeen', 'createdAt'],
   Jury: ['jid', 'name', 'whatsapp', 'categories', 'token', 'lastSeen', 'createdAt'],
   Scores: ['key', 'jid', 'pid', 'category', 'note', 'updatedAtClient', 'updatedAtServer'],
   Config: ['value'],
@@ -219,3 +221,4 @@ function setup() {
   if (!props.getProperty('ADMIN_KEY')) props.setProperty('ADMIN_KEY', randomChars_(16));
   Logger.log('SHEET_ID=' + props.getProperty('SHEET_ID') + '; config keys added: ' + add.length + '; ADMIN_KEY is in Script Properties.');
 }
+

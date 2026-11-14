@@ -16,6 +16,11 @@ var ACTIONS = {
   juryArtworks: { method: 'GET', auth: 'jury', fn: juryArtworks_ },
   juryScores: { method: 'GET', auth: 'jury', fn: juryScores_ },
   saveScore: { method: 'POST', auth: 'jury', fn: saveScore_ },
+  staffList: { method: 'GET', auth: 'admin', fn: staffList_ },
+  staffUpsert: { method: 'POST', auth: 'admin', fn: staffUpsert_ },
+  staffRegenerate: { method: 'POST', auth: 'admin', fn: staffRegenerate_ },
+  staffOverview: { method: 'GET', auth: 'staff', fn: staffOverview_ },
+  staffParticipantUpsert: { method: 'POST', auth: 'staff', fn: staffParticipantUpsert_ },
   adminOverview: { method: 'GET', auth: 'admin', fn: adminOverview_ },
   syncRegistrations: { method: 'POST', auth: 'admin', fn: syncRegistrations_ },
   participantUpsert: { method: 'POST', auth: 'admin', fn: participantUpsert_ },
@@ -87,6 +92,13 @@ function authenticate_(kind, p) {
     var key = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY');
     if (!key || String(p.k || '') !== key) throw apiErr_('UNAUTHORIZED', 'Invalid admin key');
     return { admin: true };
+  }
+  if (kind === 'staff') {
+    var staffToken = String(p.s || '').trim().toUpperCase();
+    if (!staffToken) throw apiErr_('UNAUTHORIZED', 'Missing staff token');
+    var staff = readTab_('Staff').rows.filter(function (r) { return String(r.token).toUpperCase() === staffToken; })[0];
+    if (!staff || !isTrue_(staff.active)) throw apiErr_('UNAUTHORIZED', 'This registration link is invalid or revoked');
+    return { staff: staff };
   }
   var token = String(p.t || '').trim().toUpperCase();
   if (!token) throw apiErr_('UNAUTHORIZED', 'Missing jury token');
@@ -513,7 +525,7 @@ function participantUpsert_(ctx, p) {
     }
     writeRow_('Participants', old._row, fields);
     var after = readTab_('Participants').rows.filter(function (r) { return r.pid === pid; })[0];
-    audit_('admin', 'participantUpsert', pid, partOut_(old), partOut_(after));
+    audit_(ctx.staff ? 'staff:' + ctx.staff.sid : 'admin', 'participantUpsert', pid, partOut_(old), partOut_(after));
     return partOut_(after);
   }
   if (!fields.childName) throw apiErr_('BAD_INPUT', 'Missing childName');
@@ -526,7 +538,7 @@ function participantUpsert_(ctx, p) {
     status: fields.status || 'active', createdAt: now_()
   };
   writeRow_('Participants', null, row);
-  audit_('admin', 'participantUpsert', row.pid, null, partOut_(row));
+  audit_(ctx.staff ? 'staff:' + ctx.staff.sid : 'admin', 'participantUpsert', row.pid, null, partOut_(row));
   return partOut_(row);
 }
 
@@ -701,4 +713,71 @@ function publicResults_() {
   });
   ['A', 'B'].forEach(function (c) { out[c].sort(function (x, y) { return x.rank - y.rank; }); });
   return out;
+}
+
+
+// ---- Restricted registration staff --------------------------------------------
+
+function staffToken_(staff) {
+  var token;
+  do { token = randomChars_(24); } while (staff.some(function (r) { return r.token === token; }));
+  return token;
+}
+function staffOut_(r) {
+  var link = cfgStr_('baseUrl').replace(/\/+$/, '') + '/admin/?s=' + r.token;
+  var msg = 'Salam/Hi ' + r.name + ', pautan peribadi petugas pendaftaran FSB Johor 2026: ' + link + ' . Akses untuk pendaftaran sahaja. Jangan kongsi pautan ini.';
+  return { sid: r.sid, name: r.name, whatsapp: String(r.whatsapp), active: isTrue_(r.active), lastSeen: r.lastSeen,
+    link: link, waUrl: 'https://wa.me/' + r.whatsapp + '?text=' + encodeURIComponent(msg) };
+}
+function staffAudit_(r) { return { sid: r.sid, name: r.name, active: isTrue_(r.active) }; }
+function staffList_() { return readTab_('Staff').rows.map(staffOut_); }
+function staffUpsert_(ctx, p) {
+  var staff = readTab_('Staff').rows, old = p.sid ? staff.filter(function (r) { return r.sid === p.sid; })[0] : null;
+  if (p.sid && !old) throw apiErr_('NOT_FOUND', 'Staff not found');
+  var row = {};
+  if (p.name !== undefined || !old) row.name = requireAdminStr_(p, 'name');
+  if (p.whatsapp !== undefined || !old) {
+    row.whatsapp = normPhone_(requireAdminStr_(p, 'whatsapp')).digits;
+    if (!/^\d{8,15}$/.test(row.whatsapp)) throw apiErr_('BAD_INPUT', 'Invalid WhatsApp number');
+  }
+  if (p.active !== undefined) row.active = isTrue_(p.active);
+  if (!old) {
+    var max = 0;
+    staff.forEach(function (r) { var m = /^S(\d+)$/.exec(r.sid); if (m) max = Math.max(max, +m[1]); });
+    row.sid = 'S' + pad3_(max + 1); row.token = staffToken_(staff); row.active = true;
+    row.lastSeen = ''; row.createdAt = now_();
+  }
+  writeRow_('Staff', old ? old._row : null, row);
+  var saved = readTab_('Staff').rows.filter(function (r) { return r.sid === (old ? old.sid : row.sid); })[0];
+  audit_('admin', 'staffUpsert', saved.sid, old ? staffAudit_(old) : null, staffAudit_(saved));
+  return staffOut_(saved);
+}
+function staffRegenerate_(ctx, p) {
+  var staff = readTab_('Staff').rows, old = staff.filter(function (r) { return r.sid === p.sid; })[0];
+  if (!old) throw apiErr_('NOT_FOUND', 'Staff not found');
+  var token = staffToken_(staff); writeRow_('Staff', old._row, { token: token }); old.token = token;
+  audit_('admin', 'staffRegenerate', old.sid, 'token rotated', 'token rotated');
+  return staffOut_(old);
+}
+function staffPartOut_(p) {
+  var out = {};
+  ['pid', 'category', 'childName', 'age', 'guardianName', 'guardianPhone', 'school', 'source', 'checkedIn', 'status'].forEach(function (k) { out[k] = p[k]; });
+  out.checkedIn = isTrue_(p.checkedIn);
+  return out;
+}
+function staffOverview_(ctx) {
+  return { staff: { sid: ctx.staff.sid, name: ctx.staff.name },
+    participants: readTab_('Participants').rows.map(staffPartOut_),
+    config: { eventName: cfgStr_('eventName'), baseUrl: cfgStr_('baseUrl') } };
+}
+function staffParticipantUpsert_(ctx, p) {
+  var allowed = ['action', 's', 'pid', 'childName', 'age', 'guardianName', 'guardianPhone', 'school', 'checkedIn'];
+  Object.keys(p).forEach(function (k) { if (allowed.indexOf(k) < 0) throw apiErr_('FORBIDDEN', 'Staff cannot change ' + k); });
+  if (p.childName !== undefined && !String(p.childName).trim()) throw apiErr_('BAD_INPUT', 'Missing childName');
+  if (p.age !== undefined && (!/^\d+$/.test(String(p.age).trim()) || +p.age > 12)) throw apiErr_('BAD_INPUT', 'Age must be 0 to 12');
+  var old = p.pid ? readTab_('Participants').rows.filter(function (r) { return r.pid === normPid_(p.pid); })[0] : null;
+  // A correction must not silently move an existing ID to a different age category.
+  if (old && p.age !== undefined && categoryFor_(+p.age) !== old.category) throw apiErr_('FORBIDDEN', 'Ask admin to confirm a category change');
+  var saved = participantUpsert_(ctx, p);
+  return staffPartOut_(saved);
 }

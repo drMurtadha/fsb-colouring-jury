@@ -6,7 +6,7 @@ import qrcode from '../assets/vendor/qrcode-generator.js';
 addStrings({
   prTitle: ['Cetak label QR', 'Print QR labels'], prWho: ['Label untuk', 'Labels for'],
   prAll: ['Semua peserta aktif', 'All active participants'], prChecked: ['Yang telah daftar masuk sahaja', 'Checked-in only'],
-  prSel: ['ID dipilih', 'Selected IDs'], prWalk: ['Satu peserta jalan masuk', 'One walk-in'],
+  prSel: ['ID dipilih', 'Selected IDs'], prWalk: ['Satu peserta walk-in', 'One walk-in'],
   prSelHint: ['cth. A-001, A-014, B-3', 'e.g. A-001, A-014, B-3'], prTwo: ['2 setiap peserta (karya + keping tuntutan hadiah)', '2 per participant (artwork + prize-claim stub)'],
   prGuides: ['Cetak garis panduan (untuk ujian pada kertas biasa)', 'Print outline guides (for plain-paper tests)'],
   prLayout: ['Susun atur helaian (mm)', 'Sheet layout (mm)'], prCols: ['Lajur', 'Columns'], prRows: ['Baris', 'Rows'],
@@ -26,6 +26,8 @@ const $ = s => document.querySelector(s);
 
 let data = null;
 const st = { mode: 'all', ids: '', walk: '', two: false, guides: false, layout: Object.assign({}, DEFAULTS, store.get('fsb.printLayout', {})) };
+const staffMode = new URLSearchParams(location.search).get('mode') === 'staff';
+const adminHref = staffMode ? '../admin/?mode=staff' : '../admin/';
 const qIds = new URLSearchParams(location.search).get('ids');
 if (qIds) { st.mode = 'sel'; st.ids = qIds; }
 
@@ -81,7 +83,7 @@ function sheetsHtml(list) {
       const left = L.ml + c * (L.w + L.gx), top = L.mt + r * (L.h + L.gy);
       return `<div class="lab ${it.stub ? 'stub' : ''}" data-pid="${esc(it.p.pid)}" style="left:${left}mm;top:${top}mm;width:${L.w}mm;height:${L.h}mm">
         <div class="qr" style="width:${qr}mm;height:${qr}mm">${qrSvg(it.p.pid)}</div>
-        <div class="txt"><div class="id">${esc(it.p.pid)}</div><div class="cat">${esc(it.stub ? t('prStub') : t('category', { c: it.p.category }))}</div><div class="ev">${esc(ev)}</div></div></div>`;
+        <div class="txt"><div class="id">${esc(it.p.pid)}</div><div class="cat">${esc(it.stub ? t('prStub') : t('category', { c: it.p.category }))}</div><div class="ev">${esc(it.p.childName || ev)}</div></div></div>`;
     }).join('')}</div>`).join('')
   };
 }
@@ -93,7 +95,7 @@ function view() {
   const radio = (v, label) => `<label class="in"><input type="radio" name="mode" value="${v}" ${st.mode === v ? 'checked' : ''}> ${esc(label)}</label>`;
   const nf = (k, label) => `<label>${esc(label)}<input type="number" step="0.1" data-l="${k}" value="${L[k]}"></label>`;
   const keep = $('#idsIn') === document.activeElement;
-  root.innerHTML = `<div class="ctl"><div class="f" style="justify-content:space-between"><h1>${esc(t('prTitle'))}</h1><span><a class="linkbtn" href="../admin/">${esc(t('prBack'))}</a> <button class="lang" id="langBtn">${getLang() === 'bm' ? 'EN' : 'BM'}</button></span></div>
+  root.innerHTML = `<div class="ctl"><div class="f" style="justify-content:space-between"><h1>${esc(t('prTitle'))}</h1><span><a class="linkbtn" href="${adminHref}">${esc(t('prBack'))}</a> <button class="lang" id="langBtn">${getLang() === 'bm' ? 'EN' : 'BM'}</button></span></div>
     ${String(data.config.baseUrl || '').indexOf('<') >= 0 ? `<div class="warn">${esc(t('prBase'))}</div>` : ''}
     <fieldset><legend>${esc(t('prWho'))}</legend>
       ${radio('all', t('prAll'))}${radio('checked', t('prChecked'))}
@@ -123,11 +125,12 @@ function view() {
 }
 
 async function boot() {
-  const key = store.get('fsb.adminKey', '');
-  if (!key) { root.innerHTML = `<div class="ctl"><p class="err">${esc(t('prNoKey'))}</p><a class="btn sm" href="../admin/">Admin</a></div>`; return; }
-  try { data = await apiGet('adminOverview', { k: key }); }
-  catch (e) { root.innerHTML = `<div class="ctl"><p class="err">${esc(e.message)}</p><a class="btn sm" href="../admin/">Admin</a></div>`; return; }
+  const key = store.get(staffMode ? 'fsb.staffToken' : 'fsb.adminKey', '');
+  if (!key) { root.innerHTML = `<div class="ctl"><p class="err">${esc(t('prNoKey'))}</p><a class="btn sm" href="${adminHref}">Admin</a></div>`; return; }
+  try { data = await apiGet(staffMode ? 'staffOverview' : 'adminOverview', staffMode ? { s: key } : { k: key }); }
+  catch (e) { root.innerHTML = `<div class="ctl"><p class="err">${esc(e.message)}</p><a class="btn sm" href="${adminHref}">Admin</a></div>`; return; }
   view();
 }
 onLang(() => { if (data) view(); });
 boot();
+
